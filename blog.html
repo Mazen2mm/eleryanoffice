@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مكتب هاني العريان | المدونة</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="navbar">
+    <div class="logo">
+    <a href="index.html" class="logo-link">
+        <img src="4.png" alt="لوجو" class="logo-img">
+        <span class="logo-text">مكتب هاني العريان</span>
+    </div>
+    <nav>
+        <ul>
+            <li><a href="index.html">الرئيسية</a></li>
+            <li><a href="about.html">من نحن</a></li>
+            <li><a href="services.html">خدماتنا</a></li>
+            <li><a href="clients.html">عملائنا</a></li>
+            <li><a href="blog.html">المدونة</a></li>
+            <li><a href="contact.html">تواصل معنا</a></li>
+        </ul>
+    </nav>
+    <button class="hamburger" id="hamburger" aria-label="فتح القائمة">
+        <span></span><span></span><span></span>
+    </button>
+</header>
+
+<section class="hero" style="height: 50vh;">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1 class="animate-drop">المدونة</h1>
+        <h2 class="animate-fade-in">أحدث التحديثات الضريبية</h2>
+    </div>
+</section>
+
+<section class="section-padding">
+    <div class="services-container">
+        <div class="service-card reveal">
+            <div class="icon-wrapper"><i class="fa-solid fa-newspaper"></i></div>
+            <h3>الإقرار الضريبي الإلكتروني</h3>
+            <p>تعرف على القوانين الجديدة والمواعيد النهائية لتقديم الإقرارات لتجنب الغرامات.</p>
+        </div>
+        <div class="service-card reveal" style="transition-delay: 0.1s;">
+            <div class="icon-wrapper"><i class="fa-solid fa-newspaper"></i></div>
+            <h3>تأسيس الشركات في قانون الاستثمار</h3>
+            <p>دليل شامل للمستثمرين حول كيفية بدء النشاط التجاري واستخراج الأوراق بسهولة.</p>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="footer-content reveal">
+        <div class="footer-logo"><img src="3.png" alt="لوجو" style="height: 300px;"></div>
+        <p>تواصل معنا الان</p>
+        <div class="social-links">
+            <a href="https://www.linkedin.com/in/hanyeleryanoffice/"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a href="https://wa.me/201016779182" target="_blank"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="https://www.facebook.com/hanyeleryanoffice"><i class="fa-brands fa-facebook-f"></i></a>
+            <a href="tel:01050773678"><i class="fa-solid fa-phone"></i></a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>جميع الحقوق محفوظة &copy; 2026 مكتب هاني العريان</p>
+    </div>
+</footer>
+
+
+<!-- القائمة الجانبية للموبايل -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="sidebar" id="sidebar">
+    <button class="sidebar-close" id="sidebarClose"><i class="fa-solid fa-xmark"></i></button>
+    <ul>
+        <li><a href="index.html">الرئيسية</a></li>
+        <li><a href="about.html">من نحن</a></li>
+        <li><a href="services.html">خدماتنا</a></li>
+        <li><a href="clients.html">عملائنا</a></li>
+        <li><a href="blog.html">المدونة</a></li>
+        <li><a href="contact.html">تواصل معنا</a></li>
+    </ul>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
