@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مكتب هاني العريان | لوحة التحكم</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+
+<!-- Firebase (لتخزين البيانات بحيث تظهر من أي جهاز) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="admin-body" style="align-items: flex-start; padding: 25px 15px;">
+
+<div class="dashboard">
+
+    <div class="dashboard-header">
+        <div class="header-title">
+            <img src="4.png" alt="لوجو">
+            <span>لوحة تحكم الإقرارات الضريبية</span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="admin-home.html" class="logout-btn" style="text-decoration:none;">
+                <i class="fa-solid fa-house"></i> الرئيسية
+            </a>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+            </button>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <button class="admin-tab-btn active" data-tab="vat">
+            <i class="fa-solid fa-receipt"></i> إقرار القيمة المضافة
+        </button>
+        <button class="admin-tab-btn" data-tab="withholding">
+            <i class="fa-solid fa-file-invoice"></i> إقرار الخصم والإضافة
+        </button>
+        <button class="admin-tab-btn" data-tab="payroll">
+            <i class="fa-solid fa-money-check-dollar"></i> إقرار المرتبات
+        </button>
+        <button class="admin-tab-btn" data-tab="income">
+            <i class="fa-solid fa-sack-dollar"></i> إقرار الدخل السنوي
+        </button>
+        <button class="admin-tab-btn" data-tab="companyinfo">
+            <i class="fa-solid fa-building-circle-check"></i> بيانات الشركات
+        </button>
+    </div>
+
+    <!-- ====== لوحة القيمة المضافة (شهري) ====== -->
+    <div class="admin-panel active" id="panel-vat">
+        <div class="panel-toolbar">
+            <h2>إقرار القيمة المضافة (شهري)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="vat" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة</th>
+                        <th>اسم الشخص المسئول</th>
+                        <th>الشهر</th>
+                        <th>السنة</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-vat"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ====== لوحة الخصم والإضافة (شهري) ====== -->
+    <div class="admin-panel" id="panel-withholding">
+        <div class="panel-toolbar">
+            <h2>إقرار الخصم والإضافة (شهري)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="withholding" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة</th>
+                        <th>اسم الشخص المسئول</th>
+                        <th>الشهر</th>
+                        <th>السنة</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-withholding"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ====== لوحة المرتبات (شهري) ====== -->
+    <div class="admin-panel" id="panel-payroll">
+        <div class="panel-toolbar">
+            <h2>إقرار المرتبات (شهري)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="payroll" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة</th>
+                        <th>اسم الشخص المسئول</th>
+                        <th>الشهر</th>
+                        <th>السنة</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-payroll"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ====== لوحة إقرار الدخل (سنوي) ====== -->
+    <div class="admin-panel" id="panel-income">
+        <div class="panel-toolbar">
+            <h2>إقرار الدخل (سنوي)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="income" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة</th>
+                        <th>اسم الشخص المسئول</th>
+                        <th>السنة</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-income"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ====== لوحة بيانات الشركات (الايميل والمنظومة) ====== -->
+    <div class="admin-panel" id="panel-companyinfo">
+        <div class="panel-toolbar">
+            <h2>بيانات الشركات (الايميل والمنظومة)</h2>
+            <a href="admin-clients.html" style="color:#777; font-size:0.9rem; text-decoration:underline;">إضافة / حذف شركة من هنا</a>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة</th>
+                        <th>الايميل</th>
+                        <th>المنظومة</th>
+                        <th>اسم الشخص المسئول</th>
+                    </tr>
+                </thead>
+                <tbody id="companyInfoTableBody"><tr><td colspan="5">جاري التحميل...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div class="save-toast" id="saveToast"><i class="fa-solid fa-circle-check"></i> <span>تم الحفظ بنجاح</span></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

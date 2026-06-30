@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مكتب هاني العريان | عملائنا</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<header id="navbar">
+    <div class="logo">
+    <a href="index.html" class="logo-link">
+        <img src="4.png" alt="لوجو" class="logo-img">
+        <span class="logo-text" data-en="Hany El-Eryan Office">مكتب هاني العريان</span>
+    </a>
+    </div>
+    <nav>
+        <ul>
+            <li><a href="index.html" data-en="Home">الرئيسية</a></li>
+            <li><a href="about.html" data-en="About Us">من نحن</a></li>
+            <li><a href="services.html" data-en="Services">خدماتنا</a></li>
+            <li><a href="clients.html" data-en="Clients">عملائنا</a></li>
+            <li><a href="blog.html" data-en="Blog">المدونة</a></li>
+            <li><a href="contact.html" data-en="Contact Us">تواصل معنا</a></li>
+        </ul>
+    </nav>
+    <div class="header-actions">
+        <button class="lang-toggle-btn" id="langToggleBtn" title="Switch to English">
+            <i class="fa-solid fa-globe"></i> <span class="lang-label">EN</span>
+        </button>
+        <a href="admin-login.html" class="admin-icon-link" title="لوحة التحكم">
+            <i class="fa-solid fa-user-shield"></i>
+        </a>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="فتح القائمة">
+        <span></span><span></span><span></span>
+    </button>
+</header>
+
+<section class="hero" style="height: 50vh;">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1 class="animate-drop" data-en="Partners in Success">شركاء النجاح</h1>
+    </div>
+</section>
+
+<section class="section-padding dark-section text-white">
+    <div class="section-header reveal">
+        <h2 data-en="Our Valued Clients">عملائنا المتميزون</h2>
+        <div class="line"></div>
+    </div>
+    
+    <div class="marquee-container" id="clientsMarquee" style="margin-top: 40px;">
+        
+        <div class="marquee-group">
+            <div class="service-card client-card">
+                <h3 class="client-title">لاكوزين <span class="separator">|</span> <span class="client-en">La Cuisine</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">نسر العرب <span class="separator">|</span> <span class="client-en">Nesr El-Arab</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">البدراوية <span class="separator">|</span> <span class="client-en">El Badrawia</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">المتحدة <span class="separator">|</span> <span class="client-en">El-Mottaheda</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">ديماتك <span class="separator">|</span> <span class="client-en">Dematech</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">لاكوستر <span class="separator">|</span> <span class="client-en">Lacoster</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">فكسال <span class="separator">|</span> <span class="client-en">Fixal</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">الوطنية <span class="separator">|</span> <span class="client-en">El Watania</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">المصري <span class="separator">|</span> <span class="client-en">El-Masry</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">مجموعة بونيتيرا <span class="separator">|</span> <span class="client-en">Boniterra Group</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">تيرا بيلد <span class="separator">|</span> <span class="client-en">TeraBuild</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">جرين بلاس <span class="separator">|</span> <span class="client-en">Green Palace</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">ناينث بار <span class="separator">|</span> <span class="client-en">Ninth Bar</span></h3>
+            </div>
+        </div>
+
+        <div class="marquee-group" aria-hidden="true">
+            <div class="service-card client-card">
+                <h3 class="client-title">لاكوزين <span class="separator">|</span> <span class="client-en">La Cuisine</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">نسر العرب <span class="separator">|</span> <span class="client-en">Nesr El Arab</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">البدراوية <span class="separator">|</span> <span class="client-en">El Badrawia</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">المتحدة <span class="separator">|</span> <span class="client-en">El Mottaheda</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">ديماتك <span class="separator">|</span> <span class="client-en">DemaTech</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">لاكوستر <span class="separator">|</span> <span class="client-en">La Coster</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">فكسال <span class="separator">|</span> <span class="client-en">Fixal</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">الوطنية <span class="separator">|</span> <span class="client-en">El Watania</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">المصري <span class="separator">|</span> <span class="client-en">El Masry</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">مجموعة بونيتيرا <span class="separator">|</span> <span class="client-en">Boniterra</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">تيرا بيلد <span class="separator">|</span> <span class="client-en">TeraBuild</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">جرين بلاس <span class="separator">|</span> <span class="client-en">Green Plus</span></h3>
+            </div>
+            <div class="service-card client-card">
+                <h3 class="client-title">ناينث بار <span class="separator">|</span> <span class="client-en">Ninth Bar</span></h3>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<footer>
+    <div class="footer-content reveal">
+        <div class="footer-logo"><img src="3.png" alt="لوجو" style="height: 300px;"></div>
+        <p data-en="Get in touch now">تواصل معنا الان</p>
+        <div class="social-links">
+            <a href="https://www.linkedin.com/in/hanyeleryanoffice/"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a href="https://wa.me/201016779182" target="_blank"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="https://www.facebook.com/hanyeleryanoffice"><i class="fa-brands fa-facebook-f"></i></a>
+            <a href="tel:01050773678"><i class="fa-solid fa-phone"></i></a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p><span data-en="All rights reserved &copy; 2026 Hany El-Eryan Office">جميع الحقوق محفوظة &copy; 2026 مكتب هاني العريان</span> | <a href="admin-login.html" style="color:inherit; opacity:0.6; text-decoration:none;">Admin</a></p>
+    </div>
+</footer>
+
+
+<!-- القائمة الجانبية للموبايل -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="sidebar" id="sidebar">
+    <button class="sidebar-close" id="sidebarClose"><i class="fa-solid fa-xmark"></i></button>
+    <ul>
+        <li><a href="index.html" data-en="Home">الرئيسية</a></li>
+        <li><a href="about.html" data-en="About Us">من نحن</a></li>
+        <li><a href="services.html" data-en="Services">خدماتنا</a></li>
+        <li><a href="clients.html" data-en="Clients">عملائنا</a></li>
+        <li><a href="blog.html" data-en="Blog">المدونة</a></li>
+        <li><a href="contact.html" data-en="Contact Us">تواصل معنا</a></li>
+    </ul>
+</div>
+<script src="admin.js"></script>
+<script src="translate.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
