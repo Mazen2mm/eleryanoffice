@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الحضور والانصراف</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="admin-body" style="padding: 40px 15px;">
+    <div class="login-wrapper" style="max-width: 500px;">
+        <h2 style="color: var(--gold); margin-bottom: 20px;">نظام الحضور والانصراف الذكي</h2>
+        <p id="userInfo" style="color: #fff; margin-bottom: 30px; font-weight: bold; font-size: 1.2rem;"></p>
+        
+        <div style="display: flex; gap: 20px; justify-content: center;">
+            <button id="btnCheckIn" class="admin-login-btn" style="background: #2ecc71; color: #fff;">
+                <i class="fa-solid fa-user-check"></i> تسجيل حضور
+            </button>
+            <button id="btnCheckOut" class="admin-login-btn" style="background: #e74c3c; color: #fff;">
+                <i class="fa-solid fa-user-minus"></i> تسجيل انصراف
+            </button>
+        </div>
+        <p id="attendanceMsg" style="margin-top: 20px; font-weight: bold; color: #fff; font-size: 1.1rem;"></p>
+        <br>
+        <a href="admin-home.html" class="back-home-link"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</a>
+    </div>
+
+    <script src="admin.js"></script>
+    <script>
+        initFirebase();
+        const username = sessionStorage.getItem("eleryan_user_logged_in");
+        document.getElementById("userInfo").textContent = "الموظف الحالي: " + (username || "غير معروف");
+
+        function logAttendance(type) {
+            if(!db) return;
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-Hans-CN'); // YYYY/MM/DD لتسهيل الترتيب
+            const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            db.collection("attendance").add({
+                username: username,
+                type: type, 
+                date: dateStr,
+                time: timeStr,
+                timestamp: Date.now()
+            }).then(() => {
+                const msgEl = document.getElementById("attendanceMsg");
+                msgEl.textContent = `تم تسجيل ${type} بنجاح الساعة ${timeStr}`;
+                msgEl.style.color = type === "حضور" ? "#2ecc71" : "#e74c3c";
+            }).catch(console.error);
+        }
+
+        document.getElementById("btnCheckIn").addEventListener("click", () => logAttendance("حضور"));
+        document.getElementById("btnCheckOut").addEventListener("click", () => logAttendance("انصراف"));
+    </script>
+</body>
+</html>

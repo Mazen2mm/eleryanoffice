@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مكتب هاني العريان | لوحة التحكم</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="admin-body" style="align-items: flex-start; padding: 25px 15px;">
+
+<div class="dashboard">
+
+    <div class="dashboard-header">
+        <div class="header-title">
+            <img src="4.png" alt="لوجو">
+            <span>لوحة تحكم الإقرارات الضريبية</span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="admin-home.html" class="logout-btn" style="text-decoration:none;">
+                <i class="fa-solid fa-house"></i> الرئيسية
+            </a>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+            </button>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <button class="admin-tab-btn active" data-tab="vat">
+            <i class="fa-solid fa-receipt"></i> إقرار القيمة المضافة
+        </button>
+        <button class="admin-tab-btn" data-tab="withholding">
+            <i class="fa-solid fa-file-invoice"></i> إقرار الخصم والإضافة
+        </button>
+        <button class="admin-tab-btn" data-tab="payroll">
+            <i class="fa-solid fa-money-check-dollar"></i> إقرار المرتبات
+        </button>
+        <button class="admin-tab-btn" data-tab="income">
+            <i class="fa-solid fa-sack-dollar"></i> إقرار الدخل السنوي
+        </button>
+    </div>
+
+    <div class="admin-panel active" id="panel-vat">
+        <div class="panel-toolbar">
+            <h2>إقرار القيمة المضافة (شهري)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="vat" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+
+        <div class="tax-converter-box" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 15px; color: #0a192f; display: flex; align-items: center; gap: 10px; font-size: 1.2rem;">
+                <i class="fa-solid fa-file-csv" style="color: #d4af37; font-size: 1.4rem;"></i>
+                <span>منظومة تحويل فواتير القيمة المضافة (Excel إلى CSV المعتمد)</span>
+            </h3>
+            
+            <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 180px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">1. نوع المعاملة الدفترية:</label>
+                    <select id="taxInvoiceType" style="width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; background-color: #f8fafc; font-weight: 600; outline: none;">
+                        <option value="sales">شيت مبيعات المنظومة (Sales)</option>
+                        <option value="purchases">شيت مشتريات المنظومة (Purchases)</option>
+                    </select>
+                </div>
+                
+                <div style="flex: 2; min-width: 280px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">2. اختر ملف الإكسل المستخرج (eInvoices):</label>
+                    <input type="file" id="taxExcelFile" accept=".xlsx, .xls, .csv" style="width: 100%; padding: 8px; border: 2px dashed #cbd5e1; border-radius: 8px; background: #fff; cursor: pointer;">
+                </div>
+                
+                <div style="flex: 1; min-width: 160px;">
+                    <button onclick="processAndDownloadTaxCSV()" style="width: 100%; background: #0a192f; color: #d4af37; border: none; padding: 12px 20px; border-radius: 8px; font-family: inherit; font-weight: 800; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span>تحويل وتصدير CSV</span>
+                    </button>
+                </div>
+            </div>
+            <div id="taxConverterStatus" style="margin-top: 12px; font-weight: 700; font-size: 0.95rem; min-height: 20px;"></div>
+        </div>
+        <div class="decl-add-row">
+            <input type="text" id="addDeclInput-vat" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('vat')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
+        <div class="decl-add-row" style="display:none;">
+            <input type="text" id="addDeclInput-withholding" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('withholding')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
+        <div class="decl-add-row" style="display:none;">
+            <input type="text" id="addDeclInput-payroll" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('payroll')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
+        <div class="decl-add-row" style="display:none;">
+            <input type="text" id="addDeclInput-income" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('income')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
+        
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة</th>
+                        <th>اسم الشخص المسئول</th>
+                        <th>الشهر</th>
+                        <th>السنة</th>
+                        <th>حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-vat"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="admin-panel" id="panel-withholding">
+        <div class="panel-toolbar">
+            <h2>إقرار الخصم والإضافة (شهري)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="withholding" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة</th>
+                        <th>اسم الشخص المسئول</th>
+                        <th>الشهر</th>
+                        <th>السنة</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-withholding"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="admin-panel" id="panel-payroll">
+        <div class="panel-toolbar">
+            <h2>إقرار المرتبات (شهري)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="payroll" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة</th>
+                        <th>اسم الشخص المسئول</th>
+                        <th>الشهر</th>
+                        <th>السنة</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-payroll"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="admin-panel" id="panel-income">
+        <div class="panel-toolbar">
+            <h2>إقرار الدخل (سنوي)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="income" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة</th>
+                        <th>اسم الشخص المسئول</th>
+                        <th>السنة</th>
+                        <th>حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-income"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div class="save-toast" id="saveToast"><i class="fa-solid fa-circle-check"></i> <span>تم الحفظ بنجاح</span></div>
+
+<script src="admin.js"></script>
+
+<script>
+function processAndDownloadTaxCSV() {
+    const fileInput = document.getElementById("taxExcelFile");
+    const mode = document.getElementById("taxInvoiceType").value;
+    const statusEl = document.getElementById("taxConverterStatus");
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        statusEl.style.color = "#ef4444";
+        statusEl.textContent = "يرجى اختيار ملف الإكسل.";
+        return;
+    }
+
+    const selectedFile = fileInput.files[0];
+    const fileReader = new FileReader();
+
+    fileReader.onload = function(event) {
+        try {
+            const binaryData = new Uint8Array(event.target.result);
+            const loadedWorkbook = XLSX.read(binaryData, { type: 'array' });
+            const currentSheetName = loadedWorkbook.SheetNames[0];
+            const currentWorksheet = loadedWorkbook.Sheets[currentSheetName];
+            const importedRows = XLSX.utils.sheet_to_json(currentWorksheet, { raw: false, defval: "" });
+
+            let arabicHeaders = ["نوع المستند *", "نوع الضريبة *", "نوع سلع الجدول *", "رقم الفاتورة *", (mode === "sales" ? "اسم العميل *" : "اسم المورد *"), "رقم التسجيل الضريبي للعميل *", "رقم الملف الضريبي للعميل", "العنوان *", "الرقم القومي / رقم جواز السفر", "رقم الموبيل", "تاريخ الفاتورة *", "إسم المنتج *", "كود المنتج", "نوع البيان *", "نوع السلعة *", "وحدة قياس المنتج", "سعر الوحدة *", "فئة الضريبة *", "كمية المنتج *", "المبلغ الإجمالي *", "قيمة الخصم", "المبلغ الصافي *", "قيمة الضريبة *", "الإجمالي *"];
+            let englishHeaders = [ (mode === "sales" ? "DOC_TYP_S" : "DOC_TYP_P"), "TAX_TYP", "TYP_SCH", "INVNUM", "CUST_NAME", "CUST_REG_NO", "CUST_FILE_NO", "ADDRESS", "ID", "PHONE", "DOC_TIN_NUM", "PROD_NAME", "PROD_CODE", (mode === "sales" ? "STAT_TYPE_S" : "STAT_TYPE_P"), (mode === "sales" ? "COMM_TYPE_S" : "COMM_TYPE_P"), "PMU", "UNITP", "TAX_CAT", "QOP", "TAMMOUNT", "DISC", "NET_AMM", "TAX_VAL", "TOTAL"];
+
+            let builtCSVRows = [];
+            builtCSVRows.push(arabicHeaders.join(","));
+            builtCSVRows.push(englishHeaders.join(","));
+
+            importedRows.forEach(row => {
+                let originalDocType = String(row["نوع المستند"] || row["نوع المستند *"] || "").trim();
+                let isCreditNote = (originalDocType.includes("إشعار") || originalDocType.includes("اشعار") || originalDocType.includes("Credit"));
+                
+                // نوع المستند: إشعار = 3، فاتورة = 1
+                let codedDocType = isCreditNote ? 3 : 1;
+                
+                // نوع البيان: إشعار = 5 (تسوية)، فاتورة = 3 (مبيعات) أو 1 (مشتريات)
+                let statementType = isCreditNote ? 5 : (mode === "sales" ? 3 : 1);
+                
+                // نوع السلعة: مبيعات = 1 (محلي)، مشتريات = 3 (سلعة)
+                let commodityType = (mode === "sales" ? 1 : 3);
+                
+                let rawDate = String(row["تاريخ الإصدار"] || row["تاريخ الفاتورة"] || row["تاريخ الفاتورة *"] || "").trim();
+                let d="", m="", y="";
+                let parts = rawDate.split(/[\/\-\.]/);
+                if (parts.length === 3) {
+                    if (parts[2].length >= 4) { y = parts[2]; m = parseInt(parts[1], 10); d = parseInt(parts[0], 10); }
+                    else { y = (parts[2].length === 2 ? "20" : "") + parts[2]; m = parseInt(parts[0], 10); d = parseInt(parts[1], 10); }
+                }
+                let formattedDate = (d && m && y) ? `${d}.${m}.${y}` : rawDate;
+
+                let rawTaxId = String(mode === "sales" ? (row["الرقم الضريبى للمشترى"] || row["رقم التسجيل الضريبي للعميل *"]) : (row["الرقم الضريبى للبائع"] || row["رقم التسجيل الضريبي للمورد"])).replace(/[^0-9]/g, '');
+                
+                let rowData = [
+                    codedDocType, 1, 0, 
+                    String(row["الرقم الداخلى"] || row["رقم الفاتورة"] || "").replace(/,/g, ''),
+                    String(mode === "sales" ? (row["إسم المشترى"] || row["اسم العميل *"] || "") : (row["إسم البائع"] || row["اسم المورد *"] || "")).replace(/,/g, ' '),
+                    rawTaxId.length !== 14 ? rawTaxId : "",
+                    "", "القاهرة",
+                    rawTaxId.length === 14 ? rawTaxId : "",
+                    "", formattedDate, "متنوع", "",
+                    statementType, commodityType, "", 
+                    parseFloat(row["قيمة الفاتورة"] || 0),
+                    (mode === "sales" ? 1 : 14), 1,
+                    parseFloat(row["قيمة الفاتورة"] || 0),
+                    parseFloat(row["خصم الفاتورة"] || 0),
+                    parseFloat(row["قيمة الفاتورة"] || 0),
+                    parseFloat(row["ضريبة القيمة المضافة"] || 0),
+                    parseFloat(row["إجمالى الفاتورة"] || 0)
+                ];
+                builtCSVRows.push(rowData.join(","));
+            });
+
+            const blob = new Blob(["\uFEFF" + builtCSVRows.join("\r\n")], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Export_${mode}_${new Date().getTime()}.csv`;
+            link.click();
+            
+            statusEl.style.color = "green";
+            statusEl.textContent = "تم استخراج ملف الـ CSV بنجاح!";
+        } catch (err) { console.error(err); statusEl.textContent = "خطأ في معالجة الملف."; }
+    };
+    fileReader.readAsArrayBuffer(selectedFile);
+}
+</script>
+</body>
+</html>

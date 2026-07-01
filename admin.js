@@ -1,0 +1,628 @@
+// =====================================================================
+// الحساب الرئيسي الثابت (لا يُحذف أبداً)
+// =====================================================================
+const ADMIN_CREDENTIALS = {
+    username: "eleryanofficeteam",
+    password: "123456789"
+};
+
+// =====================================================================
+// Firebase Config
+// =====================================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyBVm0NZbsWb2Ive85OYA0E1inXMGXaOXTE",
+    authDomain: "eleryanoffice0.firebaseapp.com",
+    projectId: "eleryanoffice0",
+    storageBucket: "eleryanoffice0.firebasestorage.app",
+    messagingSenderId: "625913873615",
+    appId: "1:625913873615:web:c8861075546718968423ba"
+};
+
+let db = null;
+function initFirebase() {
+    if (typeof firebase === "undefined") return false;
+    try {
+        if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        return true;
+    } catch(e){ console.error(e); return false; }
+}
+
+// =====================================================================
+// حماية صفحات الأدمن والصلاحيات
+// =====================================================================
+const PROTECTED_PAGES = {
+    "admin-home.html": "all", 
+    "admin-dashboard.html": "declarations",
+    "admin-clients.html": "clients",
+    "admin-companies.html": "companies",
+    "admin-users.html": "users",
+    "attendance.html": "attendance_click",
+    "attendance-report.html": "attendance_report"
+};
+
+const currentPage = window.location.pathname.split("/").pop();
+
+if (PROTECTED_PAGES[currentPage]) {
+    const loggedInUser = sessionStorage.getItem("eleryan_user_logged_in");
+    const userRole = sessionStorage.getItem("eleryan_user_role"); // "admin" أو "user"
+    const userPermissions = JSON.parse(sessionStorage.getItem("eleryan_user_permissions") || "[]");
+
+    if (!loggedInUser) {
+        window.location.href = "admin-login.html";
+    } else if (userRole !== "admin") {
+        // التحقق من الصلاحيات للمستخدمين العاديين
+        const requiredPermission = PROTECTED_PAGES[currentPage];
+        if (requiredPermission !== "all" && !userPermissions.includes(requiredPermission)) {
+            // توجيه لصفحة عدم الصلاحية بدلاً من رسالة Alert
+            window.location.href = "no-permission.html";
+        }
+    }
+}
+
+// =====================================================================
+// Helpers
+// =====================================================================
+function showToast(msg) {
+    const t = document.getElementById("saveToast");
+    if (!t) return;
+    t.querySelector("span").textContent = msg || "تم الحفظ بنجاح";
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2500);
+}
+function flashEl(el) {
+    if (!el) return;
+    el.classList.add("saved-flash");
+    setTimeout(() => el.classList.remove("saved-flash"), 900);
+}
+function setupLogout(btnId) {
+    const b = document.getElementById(btnId);
+    if (b) b.addEventListener("click", function() {
+        sessionStorage.clear(); // تفريغ الجلسة بالكامل
+        window.location.href = "admin-login.html";
+    });
+}
+
+// =====================================================================
+// الشركات الافتراضية في الإقرارات
+// =====================================================================
+const DEFAULT_DECL_COMPANIES = [
+    {id:"c1",  name:"لاكوزين", person:"خالد عبد اللطيف عبد الوهاب", createdAt:1},
+    {id:"c2",  name:"شريف عبد الوهاب", person:"شريف عبد اللطيف عبد الوهاب", createdAt:2},
+    {id:"c3",  name:"البدراويه", person:"محمد كمال عبد العزيز", createdAt:3},
+    {id:"c4",  name:"المتحده شركه", person:"محمود ابو الحجاج", createdAt:4},
+    {id:"c5",  name:"لاكوستر", person:"عمرو", createdAt:5},
+    {id:"c6",  name:"جرين لاين بيكيا", person:"احمد ماجد", createdAt:6},
+    {id:"c7",  name:"تيرا بيلد", person:"صالح عيد هواري", createdAt:7},
+    {id:"c8",  name:"نسر العرب", person:"محمد محمد ممثل", createdAt:8},
+    {id:"c9",  name:"ديماتك", person:"احمد سعيد سلام", createdAt:9},
+    {id:"c10", name:"بونيتيرا لاعمال الكهروميكانيكية", person:"هشام احمد محمد عمر", createdAt:10},
+    {id:"c11", name:"بونيتيرا للديكور", person:"هشام احمد محمد عمر", createdAt:11},
+    {id:"c12", name:"بونيتيرا للانشاءات", person:"هشام احمد محمد عمر", createdAt:12},
+    {id:"c13", name:"بونيتيرا لتشغيل وادارة المنشئات", person:"هشام احمد محمد عمر", createdAt:13}
+];
+
+const MONTHS = [
+    {v:1,t:"1 - يناير"},{v:2,t:"2 - فبراير"},{v:3,t:"3 - مارس"},
+    {v:4,t:"4 - أبريل"},{v:5,t:"5 - مايو"},{v:6,t:"6 - يونيو"},
+    {v:7,t:"7 - يوليو"},{v:8,t:"8 - أغسطس"},{v:9,t:"9 - سبتمبر"},
+    {v:10,t:"10 - أكتوبر"},{v:11,t:"11 - نوفمبر"},{v:12,t:"12 - ديسمبر"}
+];
+function getYears() {
+    const y = new Date().getFullYear();
+    const a = [];
+    for (let i = y-3; i <= y+3; i++) a.push(i);
+    return a;
+}
+const DECLARATION_TYPES = ["vat","withholding","payroll","income"];
+
+// =====================================================================
+// === صفحة الداشبورد (الإقرارات) ===
+// =====================================================================
+document.addEventListener("DOMContentLoaded", function() {
+    if (!document.querySelector(".dashboard")) return;
+    const pageName = currentPage;
+    if (pageName !== "admin-dashboard.html") return;
+
+    initFirebase();
+    setupLogout("logoutBtn");
+
+    document.querySelectorAll(".admin-tab-btn").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+            document.querySelectorAll(".admin-tab-btn").forEach(b => b.classList.remove("active"));
+            document.querySelectorAll(".admin-panel").forEach(p => p.classList.remove("active"));
+            btn.classList.add("active");
+            document.getElementById("panel-"+btn.dataset.tab).classList.add("active");
+            history.replaceState(null,"","#"+btn.dataset.tab);
+        });
+    });
+
+    const hashTab = window.location.hash.replace("#","");
+    if (hashTab) {
+        const tb = document.querySelector('.admin-tab-btn[data-tab="'+hashTab+'"]');
+        if (tb) tb.click();
+    }
+
+    document.querySelectorAll(".company-search").forEach(function(inp) {
+        inp.addEventListener("input", function() {
+            const panel = this.dataset.panel;
+            const q = this.value.trim();
+            document.querySelectorAll("#tbody-"+panel+" tr").forEach(function(row) {
+                row.style.display = row.dataset.companyName && row.dataset.companyName.includes(q) ? "" : "none";
+            });
+        });
+    });
+
+    DECLARATION_TYPES.forEach(loadDeclPanel);
+});
+
+function loadDeclPanel(type) {
+    const tbody = document.getElementById("tbody-"+type);
+    if (!tbody) return;
+    getCompaniesForDecl(type, function(companies) {
+        renderDeclTable(type, companies);
+        loadDeclData(type, companies);
+    });
+}
+
+function getCompaniesForDecl(type, callback) {
+    if (db) {
+        db.collection("decl_companies").doc(type).collection("list")
+            .orderBy("lastFiled","asc").get()
+            .then(function(snap) {
+                if (!snap.empty) {
+                    const companies = [];
+                    snap.forEach(d => companies.push({id: d.id, ...d.data()}));
+                    callback(companies);
+                } else { seedDefaultCompanies(type, callback); }
+            }).catch(function() { callback(DEFAULT_DECL_COMPANIES); });
+    } else { callback(DEFAULT_DECL_COMPANIES); }
+}
+
+function seedDefaultCompanies(type, callback) {
+    if (!db) { callback(DEFAULT_DECL_COMPANIES); return; }
+    const batch = db.batch();
+    DEFAULT_DECL_COMPANIES.forEach(function(c) {
+        const ref = db.collection("decl_companies").doc(type).collection("list").doc(c.id);
+        batch.set(ref, {name: c.name, person: c.person, lastFiled: c.createdAt});
+    });
+    batch.commit().then(function() { getCompaniesForDecl(type, callback); })
+    .catch(function() { callback(DEFAULT_DECL_COMPANIES); });
+}
+
+function renderDeclTable(type, companies) {
+    const tbody = document.getElementById("tbody-"+type);
+    const isMonthly = type !== "income";
+    let html = "";
+
+    companies.forEach(function(company, idx) {
+        html += `<tr data-company-id="${company.id}" data-company-name="${company.name}">
+            <td>${idx+1}</td>
+            <td class="company-name">${company.name}</td>
+            <td><input type="text" class="admin-select person-input"
+                style="width:170px;text-align:center;border:1px solid #d8dedb;border-radius:8px;padding:8px 10px;"
+                data-type="${type}" data-company="${company.id}" data-field="person"
+                value="${company.person || ""}"></td>`;
+
+        if (isMonthly) {
+            html += `<td><select class="admin-select" data-type="${type}" data-company="${company.id}" data-field="month">
+                ${MONTHS.map(m=>`<option value="${m.v}">${m.t}</option>`).join("")}
+            </select></td>`;
+        }
+
+        html += `<td><select class="admin-select" data-type="${type}" data-company="${company.id}" data-field="year">
+                ${getYears().map(y=>`<option value="${y}">${y}</option>`).join("")}
+            </select></td>
+            <td><button class="decl-delete-btn" data-type="${type}" data-company="${company.id}" title="حذف الشركة"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html;
+
+    tbody.querySelectorAll("select.admin-select, input.person-input").forEach(function(el) {
+        const evt = el.tagName === "SELECT" ? "change" : "blur";
+        el.addEventListener(evt, function() {
+            saveDeclField(el.dataset.type, el.dataset.company, el.dataset.field, el.value, el);
+        });
+    });
+
+    tbody.querySelectorAll(".decl-delete-btn").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+            if (!confirm("عايز تحذف الشركة دي من الإقرار ده؟")) return;
+            const type = btn.dataset.type;
+            const cid = btn.dataset.company;
+            if (db) {
+                db.collection("decl_companies").doc(type).collection("list").doc(cid).delete()
+                    .then(function() { loadDeclPanel(type); showToast("تم الحذف"); })
+                    .catch(function(e) { console.error(e); });
+            } else { showToast("Firebase غير متصل"); }
+        });
+    });
+}
+
+function loadDeclData(type, companies) {
+    companies.forEach(function(company) {
+        const localKey = "eleryan_"+type+"_"+company.id;
+        const localData = JSON.parse(localStorage.getItem(localKey)||"{}");
+        applyDataToRow(type, company.id, localData);
+
+        if (db) {
+            db.collection("declarations").doc(type).collection("companies").doc(company.id)
+                .get().then(function(doc) {
+                    if (doc.exists) {
+                        applyDataToRow(type, company.id, doc.data());
+                        localStorage.setItem(localKey, JSON.stringify(doc.data()));
+                    }
+                }).catch(console.error);
+        }
+    });
+}
+
+function saveDeclField(type, companyId, field, value, el) {
+    const localKey = "eleryan_"+type+"_"+companyId;
+    let localData = JSON.parse(localStorage.getItem(localKey)||"{}");
+    localData[field] = value;
+    localStorage.setItem(localKey, JSON.stringify(localData));
+
+    const rowEl = el.closest("tr");
+    let month = 0, year = 0;
+    if (rowEl) {
+        const mEl = rowEl.querySelector('[data-field="month"]');
+        const yEl = rowEl.querySelector('[data-field="year"]');
+        month = mEl ? parseInt(mEl.value)||0 : 0;
+        year  = yEl ? parseInt(yEl.value)||0 : 0;
+    }
+    const lastFiled = year * 100 + month;
+
+    if (db) {
+        const p1 = db.collection("declarations").doc(type).collection("companies").doc(companyId)
+            .set({[field]: value}, {merge:true});
+        const p2 = db.collection("decl_companies").doc(type).collection("list").doc(companyId)
+            .set({lastFiled: lastFiled}, {merge:true});
+        Promise.all([p1, p2])
+            .then(function() { showToast(); flashEl(el); loadDeclPanel(type); })
+            .catch(function(e) { console.error(e); showToast("خطأ - تحقق من Firebase"); });
+    } else {
+        showToast("تم الحفظ محلياً فقط");
+        flashEl(el);
+    }
+}
+
+function addDeclCompany(type) {
+    const inp = document.getElementById("addDeclInput-"+type);
+    const name = inp ? inp.value.trim() : "";
+    if (!name) return;
+    if (!db) { showToast("Firebase غير متصل"); return; }
+
+    const newId = "c_"+Date.now();
+    db.collection("decl_companies").doc(type).collection("list").doc(newId)
+        .set({name: name, person: "", lastFiled: 0})
+        .then(function() {
+            if (inp) inp.value = "";
+            showToast("تمت الإضافة");
+            loadDeclPanel(type);
+        }).catch(console.error);
+}
+
+function applyDataToRow(type, companyId, data) {
+    if (!data) return;
+    ["person","month","year"].forEach(function(field) {
+        if (data[field] === undefined) return;
+        const el = document.querySelector(`[data-type="${type}"][data-company="${companyId}"][data-field="${field}"]`);
+        if (el) el.value = data[field];
+    });
+}
+
+// =====================================================================
+// === صفحة بيانات الشركات ===
+// =====================================================================
+const COMP_DATA_SEED = [];
+document.addEventListener("DOMContentLoaded", function() {
+    if (currentPage !== "admin-companies.html") return;
+    initFirebase();
+    setupLogout("logoutBtn");
+
+    document.getElementById("compDataSearch").addEventListener("input", function() {
+        const q = this.value.trim().toLowerCase();
+        document.querySelectorAll("#compDataTbody tr").forEach(function(row) {
+            const n = row.dataset.companyName || "";
+            row.style.display = n.toLowerCase().includes(q) ? "" : "none";
+        });
+    });
+    loadCompanyData();
+});
+
+function loadCompanyData() {
+    const tbody = document.getElementById("compDataTbody");
+    if (!tbody) return;
+
+    if (db) {
+        db.collection("company_data").orderBy("createdAt","asc").get()
+            .then(function(snap) {
+                if (snap.empty) { seedCompanyData(); } 
+                else {
+                    const rows = [];
+                    snap.forEach(d => rows.push({id: d.id, ...d.data()}));
+                    renderCompanyData(rows);
+                }
+            }).catch(function(e) { console.error(e); });
+    } else {
+        const local = JSON.parse(localStorage.getItem("eleryan_company_data")||"null");
+        if (local) renderCompanyData(local);
+    }
+}
+
+function seedCompanyData() {} // اختصاراً لباقي الكود الغير مُعدل
+function renderCompanyData(rows) {
+    const tbody = document.getElementById("compDataTbody");
+    const countEl = document.getElementById("compDataCount");
+    if (countEl) countEl.textContent = "("+rows.length+" شركة)";
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="18" style="padding:30px;color:#999;">لا يوجد بيانات</td></tr>'; return; }
+    let html = "";
+    rows.forEach(function(row, idx) {
+        html += `<tr data-company-name="${row.name||""}">
+            <td>${idx+1}</td>
+            <td class="col-company"><input data-id="${row.id}" data-field="name" value="${esc(row.name)}"></td>
+            <td class="col-type"><input data-id="${row.id}" data-field="type" value="${esc(row.type)}" style="width:55px;"></td>
+            <td class="col-system"><input data-id="${row.id}" data-field="system" value="${esc(row.system)}"></td>
+            <td><input data-id="${row.id}" data-field="email" value="${esc(row.email)}" class="col-pass"></td>
+            <td><input data-id="${row.id}" data-field="emailpass" value="${esc(row.emailpass)}" class="col-pass"></td>
+            <td><input data-id="${row.id}" data-field="sysuser" value="${esc(row.sysuser)}" class="col-pass"></td>
+            <td><input data-id="${row.id}" data-field="syspass" value="${esc(row.syspass)}" class="col-pass"></td>
+            <td><input data-id="${row.id}" data-field="natid" value="${esc(row.natid)}" class="col-natid"></td>
+            <td><input data-id="${row.id}" data-field="regno" value="${esc(row.regno)}" class="col-reg"></td>
+            <td><input data-id="${row.id}" data-field="einvuser" value="${esc(row.einvuser)}" class="col-pass"></td>
+            <td><input data-id="${row.id}" data-field="einvpass" value="${esc(row.einvpass)}" class="col-pass"></td>
+            <td><input data-id="${row.id}" data-field="piencode" value="${esc(row.piencode)}" style="width:70px;"></td>
+            <td><input data-id="${row.id}" data-field="salaries" value="${esc(row.salaries)}" class="col-pass"></td>
+            <td><input data-id="${row.id}" data-field="acccode" value="${esc(row.acccode)}" style="width:70px;"></td>
+            <td><input data-id="${row.id}" data-field="accpass" value="${esc(row.accpass)}" class="col-pass"></td>
+            <td><input data-id="${row.id}" data-field="notes" value="${esc(row.notes)}" style="min-width:100px;"></td>
+            <td class="col-del"><button class="decl-delete-btn comp-delete-btn" data-id="${row.id}"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
+
+    tbody.querySelectorAll("input").forEach(function(inp) {
+        inp.addEventListener("blur", function() {
+            saveCompanyField(inp.dataset.id, inp.dataset.field, inp.value, inp);
+        });
+    });
+
+    tbody.querySelectorAll(".comp-delete-btn").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+            if (!confirm("حذف الشركة دي نهائياً؟")) return;
+            if (db) {
+                db.collection("company_data").doc(btn.dataset.id).delete()
+                    .then(function() { showToast("تم الحذف"); loadCompanyData(); }).catch(console.error);
+            }
+        });
+    });
+}
+function saveCompanyField(id, field, value, el) {
+    if (db) {
+        db.collection("company_data").doc(id).set({[field]: value}, {merge:true})
+            .then(function() { showToast(); flashEl(el); })
+            .catch(function(e) { console.error(e); showToast("خطأ في الحفظ"); });
+    }
+}
+window.addCompanyData = function() {
+    const get = id => document.getElementById(id).value.trim();
+    const name = get("nc_name");
+    if (!name) { alert("اسم الشركة مطلوب"); return; }
+    const row = {
+        name, type: get("nc_type"), system: get("nc_system"), email: get("nc_email"), emailpass: get("nc_emailpass"),
+        sysuser: get("nc_sysuser"), syspass: get("nc_syspass"), natid: get("nc_natid"), regno: get("nc_regno"),
+        einvuser: get("nc_einvuser"), einvpass: get("nc_einvpass"), piencode: get("nc_piencode"), salaries: get("nc_salaries"),
+        acccode: get("nc_acccode"), accpass: get("nc_accpass"), notes: get("nc_notes"), createdAt: Date.now()
+    };
+    if (db) {
+        db.collection("company_data").add(row).then(function() {
+            document.getElementById("addCompanyRow").querySelectorAll("input").forEach(i=>i.value="");
+            showToast("تمت الإضافة بنجاح"); loadCompanyData();
+        }).catch(console.error);
+    }
+};
+function esc(v) { return (v||"").replace(/"/g,"&quot;"); }
+
+// =====================================================================
+// === صفحة إدارة المستخدمين وتعديلات الصلاحيات ===
+// =====================================================================
+document.addEventListener("DOMContentLoaded", function() {
+    if (currentPage !== "admin-users.html") return;
+    initFirebase();
+    setupLogout("logoutBtn");
+    loadUsers();
+});
+
+function loadUsers() {
+    const grid = document.getElementById("usersGrid");
+    if (!grid) return;
+
+    let html = `<div class="user-card main-account">
+        <div class="user-icon"><i class="fa-solid fa-crown"></i></div>
+        <div class="user-info">
+            <strong>${ADMIN_CREDENTIALS.username}</strong>
+            <span>الحساب الرئيسي (لا يمكن حذفه)</span>
+        </div>
+    </div>`;
+
+    if (db) {
+        db.collection("admin_users").orderBy("createdAt","asc").get()
+            .then(function(snap) {
+                snap.forEach(function(doc) {
+                    const u = doc.data();
+                    let permsHTML = (u.permissions || []).map(p => `<span style="background:#eee;color:#333;font-size:10px;padding:2px 5px;border-radius:4px;margin-left:4px;">${p}</span>`).join("");
+                    html += `<div class="user-card">
+                        <div class="user-icon"><i class="fa-solid fa-user"></i></div>
+                        <div class="user-info">
+                            <strong>${u.username}</strong>
+                            <span>${u.password}</span>
+                            <div style="margin-top:5px;">${permsHTML}</div>
+                        </div>
+                        <button class="delete-user-btn" data-id="${doc.id}" title="حذف">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>`;
+                });
+                grid.innerHTML = html;
+                grid.querySelectorAll(".delete-user-btn").forEach(function(btn) {
+                    btn.addEventListener("click", function() {
+                        if (!confirm("حذف المستخدم ده؟")) return;
+                        db.collection("admin_users").doc(btn.dataset.id).delete()
+                            .then(function() { showToast("تم الحذف"); loadUsers(); }).catch(console.error);
+                    });
+                });
+            }).catch(function(e) {
+                console.error(e);
+                grid.innerHTML = html + '<div style="padding:20px;color:red;">تعذر تحميل المستخدمين</div>';
+            });
+    } else {
+        grid.innerHTML = html + '<div style="padding:20px;color:#888;">Firebase غير متصل</div>';
+    }
+}
+
+window.addUser = function() {
+    const username = document.getElementById("newUsername").value.trim();
+    const password = document.getElementById("newPassword").value.trim();
+    
+    const checkboxes = document.querySelectorAll('input[name="permission"]:checked');
+    const permissions = Array.from(checkboxes).map(cb => cb.value);
+
+    if (!username || !password) { alert("يجب إدخال اسم المستخدم وكلمة المرور"); return; }
+    if (username === ADMIN_CREDENTIALS.username) { alert("اسم المستخدم ده محجوز"); return; }
+    if (!db) { showToast("Firebase غير متصل"); return; }
+
+    db.collection("admin_users").add({
+        username, 
+        password, 
+        permissions, 
+        createdAt: Date.now()
+    }).then(function() {
+        document.getElementById("newUsername").value = "";
+        document.getElementById("newPassword").value = "";
+        document.querySelectorAll('input[name="permission"]').forEach(cb => cb.checked = false);
+        showToast("تمت إضافة المستخدم");
+        loadUsers();
+    }).catch(console.error);
+};
+
+window.verifyLogin = function(username, password, callback) {
+    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+        callback({ role: "admin", permissions: [] }); 
+        return;
+    }
+    if (!db) { callback(false, "قاعدة البيانات غير متصلة"); return; }
+    
+    db.collection("admin_users")
+        .where("username", "==", username)
+        .where("password", "==", password)
+        .get()
+        .then(function(snap) { 
+            if(!snap.empty) {
+                callback({ role: "user", permissions: snap.docs[0].data().permissions || [] });
+            } else {
+                callback(false, "اسم المستخدم أو كلمة المرور غير صحيحة");
+            }
+        })
+        .catch(function(error) { 
+            console.error("Firebase Login Error: ", error);
+            callback(false, "حدث خطأ أثناء الاتصال بقاعدة البيانات. (راجع الـ Console)"); 
+        });
+};
+
+// =====================================================================
+// === باقي الأكواد القديمة المتعلقة بالعملاء (admin-clients.html) ===
+// =====================================================================
+const CLIENTS_SEED = [ {nameAr: "لاكوزين", nameEn: "La Cuisine"} ];
+function seedClientsAdmin(callback) {
+    if (!db) return; const batch = db.batch();
+    CLIENTS_SEED.forEach(function(c, i) {
+        const ref = db.collection("clients").doc();
+        batch.set(ref, {...c, createdAt: Date.now() + i});
+    });
+    batch.commit().then(callback).catch(console.error);
+}
+document.addEventListener("DOMContentLoaded", function() {
+    if (currentPage !== "admin-clients.html") return;
+    initFirebase(); setupLogout("logoutBtn");
+    document.getElementById("addClientForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const nameAr = document.getElementById("clientNameAr").value.trim();
+        const nameEn = document.getElementById("clientNameEn").value.trim();
+        if (!nameAr) return;
+        const client = {nameAr, nameEn: nameEn||nameAr, createdAt: Date.now()};
+        if (db) {
+            db.collection("clients").add(client)
+                .then(function() { showToast("تمت الإضافة"); this.reset(); loadClientsAdmin(); }.bind(this))
+        }
+    });
+    loadClientsAdmin();
+});
+
+function loadClientsAdmin() {
+    const tbody = document.getElementById("clientsTableBody");
+    const countEl = document.getElementById("clientsCount");
+    if (!tbody) return;
+    if (db) {
+        db.collection("clients").orderBy("createdAt","asc").get().then(function(snap) {
+            if (snap.empty) { seedClientsAdmin(loadClientsAdmin); return; }
+            let html = ""; let i = 0;
+            snap.forEach(function(doc) {
+                i++; const d=doc.data();
+                html += `<tr><td>${i}</td><td class="company-name">${d.nameAr}</td><td>${d.nameEn||""}</td>
+                    <td><button class="delete-client-btn" data-id="${doc.id}"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+            });
+            tbody.innerHTML = html;
+            if (countEl) countEl.textContent = i+" شركة";
+            tbody.querySelectorAll(".delete-client-btn").forEach(function(btn) {
+                btn.addEventListener("click", function() {
+                    if (!confirm("حذف هذا العميل؟")) return;
+                    db.collection("clients").doc(btn.dataset.id).delete()
+                        .then(function() { showToast("تم الحذف"); loadClientsAdmin(); });
+                });
+            });
+        });
+    }
+}
+// =====================================================================
+// === صفحة العملاء للزوار (clients.html) - تحميل ديناميكي ===
+// =====================================================================
+document.addEventListener("DOMContentLoaded", function() {
+    const marquee = document.getElementById("clientsMarquee");
+    if (!marquee) return;
+    initFirebase();
+    
+    function renderMarquee(items) {
+        function buildGroup(hidden) {
+            let h = `<div class="marquee-group"${hidden?' aria-hidden="true"':''}>`;
+            items.forEach(d => {
+                h += `<div class="service-card client-card"><h3 class="client-title">${d.nameAr} <span class="separator">|</span> <span class="client-en">${d.nameEn||d.nameAr}</span></h3></div>`;
+            });
+            return h+"</div>";
+        }
+        marquee.innerHTML = buildGroup(false) + buildGroup(true);
+    }
+
+    if (db) {
+        db.collection("clients").orderBy("createdAt","asc").get()
+            .then(function(snap) {
+                if (snap.empty) {
+                    // في حالة عدم وجود عملاء في قاعدة البيانات
+                    marquee.innerHTML = '<div style="text-align: center; padding: 20px; color: #fff;">لا يوجد عملاء مضافين حالياً.</div>';
+                    return;
+                }
+                const items = [];
+                snap.forEach(d => items.push(d.data()));
+                renderMarquee(items);
+            }).catch(console.error);
+    } else {
+        // الاعتماد على التخزين المحلي كبديل إذا لم تتصل قاعدة البيانات
+        let local = JSON.parse(localStorage.getItem("eleryan_clients_fallback")||"null");
+        if(local && local.length > 0) {
+            renderMarquee(local);
+        } else if (typeof CLIENTS_SEED !== 'undefined') {
+            renderMarquee(CLIENTS_SEED);
+        }
+    }
+});

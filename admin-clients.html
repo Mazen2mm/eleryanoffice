@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مكتب هاني العريان | إدارة العملاء</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="admin-body" style="align-items: flex-start; padding: 25px 15px;">
+
+<div class="dashboard">
+
+    <div class="dashboard-header">
+        <div class="header-title">
+            <img src="4.png" alt="لوجو">
+            <span>إدارة العملاء (تظهر في صفحة "عملائنا")</span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="admin-home.html" class="logout-btn" style="text-decoration:none;">
+                <i class="fa-solid fa-house"></i> الرئيسية
+            </a>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+            </button>
+        </div>
+    </div>
+
+    <div class="admin-panel active">
+        <div class="panel-toolbar">
+            <h2>إضافة عميل جديد</h2>
+        </div>
+        <form class="clients-admin-form" id="addClientForm">
+            <input type="text" id="clientNameAr" placeholder="اسم الشركة بالعربي" required>
+            <input type="text" id="clientNameEn" placeholder="اسم الشركة بالإنجليزي (اختياري)">
+            <button type="submit"><i class="fa-solid fa-plus"></i> إضافة</button>
+        </form>
+    </div>
+
+    <div class="admin-panel active" style="margin-top:20px;">
+        <div class="panel-toolbar">
+            <h2>قائمة العملاء الحالية</h2>
+            <span id="clientsCount" style="color:#777; font-size:0.9rem;"></span>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>اسم الشركة (عربي)</th>
+                        <th>اسم الشركة (إنجليزي)</th>
+                        <th>حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTableBody">
+                    <tr><td colspan="4">جاري التحميل...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div class="save-toast" id="saveToast"><i class="fa-solid fa-circle-check"></i> <span>تم الحفظ بنجاح</span></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

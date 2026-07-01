@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مكتب هاني العريان | بيانات الشركات</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="admin-body" style="align-items:flex-start; padding:20px 10px;">
+
+<div class="dashboard" style="max-width:100%;">
+
+    <div class="dashboard-header">
+        <div class="header-title">
+            <img src="4.png" alt="لوجو">
+            <span>بيانات الشركات والمنظومات</span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="admin-home.html" class="logout-btn" style="text-decoration:none;">
+                <i class="fa-solid fa-house"></i> الرئيسية
+            </a>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+            </button>
+        </div>
+    </div>
+
+    <div class="admin-panel active">
+        <div class="panel-toolbar">
+            <h2>إضافة شركة جديدة</h2>
+        </div>
+        <div class="add-company-row" id="addCompanyRow">
+            <input type="text" id="nc_name" placeholder="اسم الشركة *" required>
+            <select id="nc_type"><option value="شركة">شركة</option><option value="فردي">فردي</option></select>
+            <select id="nc_system"><option value="منظومه جديدة">منظومه جديدة</option><option value="منظومة قديمة">منظومة قديمة</option></select>
+            <input type="email" id="nc_email" placeholder="الايميل">
+            <input type="text" id="nc_emailpass" placeholder="باسورد الايميل">
+            <input type="text" id="nc_sysuser" placeholder="يوزر المنظومة">
+            <input type="text" id="nc_syspass" placeholder="باسورد المنظومة">
+            <input type="text" id="nc_natid" placeholder="الرقم القومي">
+            <input type="text" id="nc_regno" placeholder="رقم التسجيل">
+            <input type="text" id="nc_einvuser" placeholder="يوزر الفاتورة الإلكترونية">
+            <input type="text" id="nc_einvpass" placeholder="باسورد الفاتورة الإلكترونية">
+            <input type="text" id="nc_piencode" placeholder="pien code">
+            <input type="text" id="nc_salaries" placeholder="المرتبات">
+            <input type="text" id="nc_acccode" placeholder="كود المحاسب">
+            <input type="text" id="nc_accpass" placeholder="باسورد المحاسب">
+            <input type="text" id="nc_notes" placeholder="ملاحظات">
+            <button onclick="addCompanyData()"><i class="fa-solid fa-plus"></i> إضافة الشركة</button>
+        </div>
+    </div>
+
+    <div class="admin-panel active" style="margin-top:20px; padding:0;">
+        <div class="panel-toolbar" style="padding:16px 20px;">
+            <h2>قائمة الشركات <span id="compDataCount" style="color:#888;font-size:0.9rem;font-weight:400;"></span></h2>
+            <div class="search-wrap">
+                <input type="text" id="compDataSearch" class="company-search" placeholder="بحث...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="companies-data-table-wrap">
+            <table class="companies-data-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">م</th>
+                        <th rowspan="2">اسم الشركة</th>
+                        <th rowspan="2">النوع</th>
+                        <th rowspan="2">نوع المنظومة</th>
+                        <th colspan="2">الايميل</th>
+                        <th colspan="2">المنظومة</th>
+                        <th rowspan="2">الرقم القومي</th>
+                        <th rowspan="2">رقم التسجيل</th>
+                        <th colspan="4">الفاتورة الإلكترونية</th>
+                        <th rowspan="2">كود المحاسب</th>
+                        <th rowspan="2">باسورد المحاسب</th>
+                        <th rowspan="2">ملاحظات</th>
+                        <th rowspan="2">حذف</th>
+                    </tr>
+                    <tr>
+                        <th>اسم المستخدم</th>
+                        <th>الباسورد</th>
+                        <th>رقم التسجيل</th>
+                        <th>الباسورد</th>
+                        <th>اسم المستخدم</th>
+                        <th>الباسورد</th>
+                        <th>pien code</th>
+                        <th>المرتبات</th>
+                    </tr>
+                </thead>
+                <tbody id="compDataTbody">
+                    <tr><td colspan="18" style="padding:30px;color:#999;">جاري التحميل...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div class="save-toast" id="saveToast"><i class="fa-solid fa-circle-check"></i> <span>تم الحفظ بنجاح</span></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

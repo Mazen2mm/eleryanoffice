@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مكتب هاني العريان | إدارة المستخدمين</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="admin-body" style="align-items:flex-start; padding:25px 15px;">
+
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div class="header-title">
+            <img src="4.png" alt="لوجو">
+            <span>إدارة المستخدمين</span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="admin-home.html" class="logout-btn" style="text-decoration:none;">
+                <i class="fa-solid fa-house"></i> الرئيسية
+            </a>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+            </button>
+        </div>
+    </div>
+
+    <div class="admin-panel active">
+        <div class="panel-toolbar"><h2>إضافة مستخدم جديد وتحديد الصلاحيات</h2></div>
+        <div class="add-user-form" style="display: flex; flex-direction: column; gap: 15px; padding: 20px;">
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="newUsername" placeholder="اسم المستخدم (username)" style="flex: 1;">
+                <input type="password" id="newPassword" placeholder="كلمة المرور" style="flex: 1;">
+            </div>
+            
+            <div style="background: rgba(212,175,55,0.06); padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+                <h4 style="margin-bottom: 10px; color: #0a192f;">اختر الصلاحيات:</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                    <label style="cursor: pointer;"><input type="checkbox" name="permission" value="declarations"> إقرارات ضريبية</label>
+                    <label style="cursor: pointer;"><input type="checkbox" name="permission" value="companies"> بيانات الشركات</label>
+                    <label style="cursor: pointer;"><input type="checkbox" name="permission" value="clients"> إدارة عملائنا</label>
+                    <label style="cursor: pointer;"><input type="checkbox" name="permission" value="users"> إدارة المستخدمين</label>
+                    <label style="cursor: pointer;"><input type="checkbox" name="permission" value="attendance_click"> تسجيل الحضور والانصراف</label>
+                    <label style="cursor: pointer;"><input type="checkbox" name="permission" value="attendance_report"> تقرير الحضور والغياب</label>
+                </div>
+            </div>
+            
+            <button onclick="addUser()" style="align-self: flex-start; padding: 10px 30px;"><i class="fa-solid fa-plus"></i> إضافة المستخدم</button>
+        </div>
+    </div>
+
+    <div class="admin-panel active" style="margin-top:20px;">
+        <div class="panel-toolbar"><h2>المستخدمون الحاليون</h2></div>
+        <div class="users-grid" id="usersGrid">
+            <div style="padding:20px; color:#999;">جاري التحميل...</div>
+        </div>
+    </div>
+</div>
+
+<div class="save-toast" id="saveToast"><i class="fa-solid fa-circle-check"></i> <span>تم الحفظ بنجاح</span></div>
+<script src="admin.js"></script>
+</body>
+</html>
