@@ -80,7 +80,7 @@
                 </div>
                 
                 <div style="flex: 2; min-width: 280px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">2. اختر ملف الإكسل المستخرج (eInvoices):</label>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">2. اختر ملف الإكسل المستخرج:</label>
                     <input type="file" id="taxExcelFile" accept=".xlsx, .xls, .csv" style="width: 100%; padding: 8px; border: 2px dashed #cbd5e1; border-radius: 8px; background: #fff; cursor: pointer;">
                 </div>
                 
@@ -93,34 +93,15 @@
             </div>
             <div id="taxConverterStatus" style="margin-top: 12px; font-weight: 700; font-size: 0.95rem; min-height: 20px;"></div>
         </div>
+
         <div class="decl-add-row">
             <input type="text" id="addDeclInput-vat" placeholder="اسم الشركة الجديدة">
             <button onclick="addDeclCompany('vat')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
         </div>
-        <div class="decl-add-row" style="display:none;">
-            <input type="text" id="addDeclInput-withholding" placeholder="اسم الشركة الجديدة">
-            <button onclick="addDeclCompany('withholding')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
-        </div>
-        <div class="decl-add-row" style="display:none;">
-            <input type="text" id="addDeclInput-payroll" placeholder="اسم الشركة الجديدة">
-            <button onclick="addDeclCompany('payroll')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
-        </div>
-        <div class="decl-add-row" style="display:none;">
-            <input type="text" id="addDeclInput-income" placeholder="اسم الشركة الجديدة">
-            <button onclick="addDeclCompany('income')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
-        </div>
-        
         <div class="table-scroll">
             <table class="admin-table">
                 <thead>
-                    <tr>
-                        <th>م</th>
-                        <th>اسم الشركة</th>
-                        <th>اسم الشخص المسئول</th>
-                        <th>الشهر</th>
-                        <th>السنة</th>
-                        <th>حذف</th>
-                    </tr>
+                    <tr><th>م</th><th>اسم الشركة</th><th>اسم الشخص المسئول</th><th>الشهر</th><th>السنة</th><th>حذف</th></tr>
                 </thead>
                 <tbody id="tbody-vat"></tbody>
             </table>
@@ -135,16 +116,14 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
         </div>
+        <div class="decl-add-row" style="display:none;">
+            <input type="text" id="addDeclInput-withholding" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('withholding')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
         <div class="table-scroll">
             <table class="admin-table">
                 <thead>
-                    <tr>
-                        <th>م</th>
-                        <th>اسم الشركة</th>
-                        <th>اسم الشخص المسئول</th>
-                        <th>الشهر</th>
-                        <th>السنة</th>
-                    </tr>
+                    <tr><th>م</th><th>اسم الشركة</th><th>اسم الشخص المسئول</th><th>الشهر</th><th>السنة</th></tr>
                 </thead>
                 <tbody id="tbody-withholding"></tbody>
             </table>
@@ -159,16 +138,37 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
         </div>
+
+        <div class="tax-converter-box" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 15px; color: #0a192f; display: flex; align-items: center; gap: 10px; font-size: 1.2rem;">
+                <i class="fa-solid fa-money-check-dollar" style="color: #27ae60; font-size: 1.4rem;"></i>
+                <span>منظومة تحويل إقرار المرتبات (Excel إلى CSV المعتمد)</span>
+            </h3>
+            
+            <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 2; min-width: 280px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">اختر ملف الإكسل (شيت الموظفين):</label>
+                    <input type="file" id="payrollExcelFile" accept=".xlsx, .xls, .csv" style="width: 100%; padding: 8px; border: 2px dashed #cbd5e1; border-radius: 8px; background: #fff; cursor: pointer;">
+                </div>
+                
+                <div style="flex: 1; min-width: 160px;">
+                    <button onclick="processAndDownloadPayrollCSV()" style="width: 100%; background: #0a192f; color: #27ae60; border: none; padding: 12px 20px; border-radius: 8px; font-family: inherit; font-weight: 800; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span>تحويل وتصدير CSV</span>
+                    </button>
+                </div>
+            </div>
+            <div id="payrollConverterStatus" style="margin-top: 12px; font-weight: 700; font-size: 0.95rem; min-height: 20px;"></div>
+        </div>
+
+        <div class="decl-add-row" style="display:none;">
+            <input type="text" id="addDeclInput-payroll" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('payroll')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
         <div class="table-scroll">
             <table class="admin-table">
                 <thead>
-                    <tr>
-                        <th>م</th>
-                        <th>اسم الشركة</th>
-                        <th>اسم الشخص المسئول</th>
-                        <th>الشهر</th>
-                        <th>السنة</th>
-                    </tr>
+                    <tr><th>م</th><th>اسم الشركة</th><th>اسم الشخص المسئول</th><th>الشهر</th><th>السنة</th></tr>
                 </thead>
                 <tbody id="tbody-payroll"></tbody>
             </table>
@@ -183,16 +183,14 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
         </div>
+        <div class="decl-add-row" style="display:none;">
+            <input type="text" id="addDeclInput-income" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('income')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
         <div class="table-scroll">
             <table class="admin-table">
                 <thead>
-                    <tr>
-                        <th>م</th>
-                        <th>اسم الشركة</th>
-                        <th>اسم الشخص المسئول</th>
-                        <th>السنة</th>
-                        <th>حذف</th>
-                    </tr>
+                    <tr><th>م</th><th>اسم الشركة</th><th>اسم الشخص المسئول</th><th>السنة</th><th>حذف</th></tr>
                 </thead>
                 <tbody id="tbody-income"></tbody>
             </table>
@@ -206,6 +204,156 @@
 <script src="admin.js"></script>
 
 <script>
+// =====================================================================
+// سكربت تحويل إقرار المرتبات 
+// =====================================================================
+function processAndDownloadPayrollCSV() {
+    const fileInput = document.getElementById("payrollExcelFile");
+    const statusEl = document.getElementById("payrollConverterStatus");
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        statusEl.style.color = "#ef4444";
+        statusEl.textContent = "يرجى اختيار ملف الإكسل أولاً.";
+        return;
+    }
+
+    const selectedFile = fileInput.files[0];
+    const fileReader = new FileReader();
+
+    fileReader.onload = function(event) {
+        try {
+            const binaryData = new Uint8Array(event.target.result);
+            const loadedWorkbook = XLSX.read(binaryData, { type: 'array' });
+            const currentSheetName = loadedWorkbook.SheetNames[0];
+            const currentWorksheet = loadedWorkbook.Sheets[currentSheetName];
+            const importedRows = XLSX.utils.sheet_to_json(currentWorksheet, { raw: false, defval: "" });
+
+            if(importedRows.length === 0) {
+                statusEl.style.color = "#ef4444";
+                statusEl.textContent = "الملف المرفوع فارغ!";
+                return;
+            }
+
+            const requiredCols = [
+                'كود الموظف', 'اسم الموظف', 'الجنسية', 'الرقم القومي', 'رقم التليفون', 
+                'الوظيفة', 'اسم الجهة/الفرع', 'المعاملة الضريبية', 'مدة العمل', 
+                'الحالة التأمينية', 'الأجر الشامل', 'المرتب الأساسي', 'مكافات وحوافز/أجر إضافي/منح'
+            ];
+
+            const uploadedCols = Object.keys(importedRows[0]).map(k => k.trim());
+            let missingCols = [];
+            
+            requiredCols.forEach(col => {
+                if (!uploadedCols.includes(col)) missingCols.push(col);
+            });
+
+            if (missingCols.length > 0) {
+                statusEl.style.color = "#ef4444";
+                statusEl.textContent = `خطأ: العمود التالي غير موجود في الشيت: (${missingCols.join(" ، ")})`;
+                return;
+            }
+
+            const payrollArabicHeaders = [
+                "مسلسل", "كود الموظف", "اسم الموظف", "الجنسية", "الرقم القومي", "رقم جواز السفر", "رقم جواز السفر الجديد", "رقم التليفون", "حالة تصريح العمل لغير المصريين", "رقم تصريح العمل", "الوظيفة", "اسم الجهة/الفرع", "المعاملة الضريبية", "رقم التسجيل الضريبي لجهة العمل الأصلية", "مدة العمل", "الحالة التأمينية", "الرقم التأمينى", "تاريخ الالتحاق بالتأمينات", "قسط مدة سابقة", "تاريخ نهاية الخدمة", "تاريخ انتهاء الاشتراك من التأمينات الاجتماعية", "الأجر الشامل", "بدلات غير خاضعة تأمينيأ", "الأجر التأميني", "حالة التأمين  الصحي الشامل", "عدد الزوجات الغير عاملات (التأمين الصحي الشامل)", "عدد المعالين (التأمين الصحي  الشامل)", "المرتب الأساسي", "مكافات وحوافز/أجر إضافي/منح", "علاوات خاصة معفاة", "علاوات خاصة خاضعة", "عمولات", "نصيب العامل في الأرباح", "مقابل الخدمة", "البقشيش", "مرتبات ومكافات رؤساء اعضاء مجلس الادارة (مقابل العمل الإداري)", "المقابل النقدى لرصيد الاجازات أثناء الخدمة", "مكافأة نهاية الخدمة الخاضعة", "مبالغ منصرفة بقوانين خاصة (الجزء المعفي منها)", "إضافات وبدلات اخرى خاضعة", "ما تحملته المنشاة من ضريبة مرتبات", "ما تحملته المنشاة من التأمينات الاجتماعية", "مبالغ خاضعة منصرفة بصورة ربع سنوية", "مبالغ خاضعة منصرفة بصورة نصف سنوية", "مبالغ خاضعة منصرفة بصورة  سنوية", "مزايا: السيارات", "مزايا: الهواتف المحمولة", "مزايا: قروض وسلف", "مزايا: التأمين على الحياة (حصة صاحب العمل)", "مزايا: اسهم الشركة داخل مصر او خارج مصر", "مزايا أخرى", "اجمالى الاستحقاقات", "حصة العامل فى التأمينات الإجتماعية  والمعاشات", "حصة العامل المستقطعة في التأمين الصحي الشامل", "مبالغ معفاة  بقوانين خاصة", "علاوات خاصة معفاة", "العلاوة الاجتماعية/الإضافية لجهات حكومية و ق.ع. وغير خاضع للخدمة المدنية", "الاعفاء الشخصى", "اقساط (مدة سابقة/اعارة/اعتبارية)", "نصيب العامل في الأرباح", "اشتراكات العاملين فى صناديق التامين التى تنشاء طبقا لاحكام ق 54 لسنة 75", "اشتراكات العاملين فى صناديق التامين التى تنشأ طبقا لاحكام ق 155 لسنة 2024", "أقساط التأمين على حياة الممول لمصلحتة ومصلحةزوجته وأولاده القصر", "أقساط التأمين الصحي", "أقساط تأمين لإستحقاق معاش", "إجمالي اشتراكات صناديق التأمين", "اجمالى الاستقطاعات", "صافى الدخل (وعاء الفتره)", "الوعاء السنوى", "الضريبة  المستحقة عن الفترة للعمالة الاصلية", "الضريبة  المستحقة عن الفترة للعمالة المدرجه بنموذج 3 مرتبات", "الضريبة المستحقة عن الفترة للعمالة المدرجه بنموذج 2 مرتبات", "اجمالى الضريبة المستحقة عن جميع انواع العمالة", "الضريبة المحتسبة عن الفترة", "الضريبة المحتسبة عن الفترات السابقة للمعاملات الضريبية 1 و4 و5 و6 و7", "الضريبة المحتسبة عن الفترة للمعاملات الضريبية 1 و4 و5 و6 و7", "الضريبة المحتسبة عن الفترات السابقة للمعاملة ضريبية 2", "الضريبة المحتسبة عن الفترة للمعاملة ضريبية 2", "الضريبة المحتسبة عن الفترات السابقة للمعاملة ضريبية 3", "الضريبة المحتسبة عن الفترة للمعاملة ضريبية 3", "صافي الأجر النهائي", "مشاركه اجتماعيه استقطاع لصندوق الشهداء وما فى حكمها", "دعم ذوي الهمم (قانون 200 لسنة 2020)", "اضافات: قيمة السلفة/قروض", "اضافات: قيمة مكافأة نهاية الخدمة الغير خاضعة", "اضافات: قيمة رصيد الأجازات الغير خاضعة", "اضافات أخرى", "استقطاعات: نفقة", "استقطاعات: قيمة قسط السلفة/القرض", "استقطاعات: اشتراكات نقابات/أندية", "استقطاعات: جزاءات", "استقطاعات: قيمة قسط بوليصة التأمين على الحياة", "استقطاعات أخرى", "حصة الشركة في التأمينات الاجتماعية", "حصة الشركة في التأمين الصحي الشامل", "المساهمة فى صندوق الشهداء", "الدمغات", "المبالغ المحولة فعلياً"
+            ];
+            
+            const payrollEnglishHeaders = [
+                "EI005", "EI010", "EI015", "EI020", "EI025", "EI026", "EI027", "EI030", "EI035", "EI040", "EI045", "EI055", "EI060", "EI065", "EI130", "EI070", "EI075", "EI080", "EI085", "EI090", "EI095", "EI100", "EI105", "EI110", "EI115", "EI120", "EI125", "DTE160", "DTE170", "DTE180", "DTE175", "DTE190", "DTE230", "DTE235", "DTE260", "DTE240", "DTE245", "DTE250", "DTE255", "DTE265", "DTE270", "DTE275", "DTE280", "DTE285", "DTE290", "DTE200", "DTE205", "DTE210", "DTE215", "DTE220", "DTE225", "DTE295", "DAE405", "DAE410", "DAE415", "DAE420", "DAE425", "DAE430", "DAE435", "DAE440", "DAE450", "DAE451", "DAE455", "DAE460", "DAE465", "DAE470", "DAE475", "TC505", "TC510", "TC515", "TC520", "TC525", "TC530", "END705", "TC535", "TC540", "TC545", "TC550", "TC555", "TC560", "TC565", "NAD610", "CLD825", "NAD615", "NAD620", "NAD625", "NAD630", "NAD635", "NAD640", "NAD645", "NAD650", "NAD655", "NAD660", "CLD805", "CLD810", "CLD815", "CLD820", "NAD665"
+            ];
+
+            let builtCSVRows = [];
+            builtCSVRows.push(payrollArabicHeaders.join(","));
+            builtCSVRows.push(payrollEnglishHeaders.join(","));
+
+            importedRows.forEach((row, index) => {
+                const getVal = (colName) => {
+                    const exactKey = Object.keys(row).find(k => k.trim() === colName);
+                    return exactKey ? String(row[exactKey]).trim() : "";
+                };
+
+                let natId = getVal('الرقم القومي').replace(/\D/g, "");
+                
+                let phone = getVal('رقم التليفون').replace(/\D/g, "");
+                if (phone.length === 10 && phone.startsWith("1")) {
+                    phone = "0" + phone;
+                }
+
+                let insDateRaw = getVal('تاريخ الالتحاق بالتأمينات');
+                let insDateFormatted = "0";
+                if (insDateRaw && insDateRaw !== "0" && insDateRaw.toLowerCase() !== "nan") {
+                    let parts = insDateRaw.split(/[\/\-\.]/);
+                    if (parts.length === 3) {
+                        let d = parts[0].padStart(2, '0');
+                        let m = parts[1].padStart(2, '0');
+                        let y = parts[2];
+                        if (y.length === 2) y = "20" + y;
+                        insDateFormatted = `${d}${m}${y}`;
+                    } else {
+                        let digitsOnly = insDateRaw.replace(/\D/g, "");
+                        if(digitsOnly.length === 8) insDateFormatted = digitsOnly;
+                        else insDateFormatted = insDateRaw;
+                    }
+                }
+
+                let rowData = new Array(98).fill("0");
+
+                rowData[0] = index + 1; 
+                rowData[1] = getVal('كود الموظف');
+                rowData[2] = getVal('اسم الموظف').replace(/,/g, " ");
+                rowData[3] = getVal('الجنسية');
+                rowData[4] = natId;
+                rowData[5] = ""; 
+                rowData[6] = ""; 
+                rowData[7] = phone;
+                rowData[8] = ""; 
+                rowData[9] = ""; 
+                rowData[10] = getVal('الوظيفة').replace(/,/g, " ");
+                rowData[11] = getVal('اسم الجهة/الفرع').replace(/,/g, " ");
+                rowData[12] = getVal('المعاملة الضريبية');
+                rowData[13] = ""; 
+                rowData[14] = getVal('مدة العمل');
+                rowData[15] = getVal('الحالة التأمينية');
+                rowData[16] = getVal('الرقم التأمينى') || "0"; 
+                rowData[17] = insDateFormatted;
+                rowData[21] = getVal('الأجر الشامل') || "0";
+                rowData[27] = getVal('المرتب الأساسي') || "0";
+                rowData[28] = getVal('مكافات وحوافز/أجر إضافي/منح') || "0";
+
+                for (let i = 0; i < 98; i++) {
+                    if (rowData[i] === undefined || rowData[i] === null || rowData[i] === "") {
+                        if ([5, 6, 8, 9, 13].includes(i)) {
+                            rowData[i] = ""; 
+                        } else {
+                            rowData[i] = "0"; 
+                        }
+                    } else {
+                        rowData[i] = String(rowData[i]).replace(/,/g, " "); 
+                    }
+                }
+
+                builtCSVRows.push(rowData.join(","));
+            });
+
+            const blob = new Blob(["\uFEFF" + builtCSVRows.join("\r\n")], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Export_Payroll_${new Date().getTime()}.csv`;
+            link.click();
+            
+            statusEl.style.color = "green";
+            statusEl.textContent = "تم استخراج ملف إقرار المرتبات بنجاح!";
+        } catch (err) { 
+            console.error(err); 
+            statusEl.style.color = "#ef4444"; 
+            statusEl.textContent = "حدث خطأ أثناء معالجة الملف. يرجى التأكد من التنسيق."; 
+        }
+    };
+    fileReader.readAsArrayBuffer(selectedFile);
+}
+
+// =====================================================================
+// سكربت تحويل إقرار القيمة المضافة (القديم والجديد) مع تعديلات الاستيراد
+// =====================================================================
 function processAndDownloadTaxCSV() {
     const fileInput = document.getElementById("taxExcelFile");
     const mode = document.getElementById("taxInvoiceType").value;
@@ -252,9 +400,19 @@ function processAndDownloadTaxCSV() {
 
                 let originalDocType = String(row["نوع المستند"] || row["نوع المستند *"] || "").trim();
                 let isCreditNote = (originalDocType.includes("إشعار") || originalDocType.includes("اشعار") || originalDocType.includes("Credit"));
-                let codedDocType = isCreditNote ? 3 : 1;
-                let statementType = isCreditNote ? 5 : (mode === "sales" ? 3 : 1);
+                let isImport = (originalDocType.includes("استيراد") || originalDocType.includes("إستيراد"));
+                
+                let codedDocType = 1;
+                let statementType = (mode === "sales" ? 3 : 1);
                 let commodityType = (mode === "sales" ? 1 : 3);
+                
+                if (isCreditNote) {
+                    codedDocType = 3;  
+                    statementType = 5; 
+                } else if (isImport) {
+                    codedDocType = 4;  
+                    statementType = 2; 
+                }
                 
                 let rawDate = String(row["تاريخ الإصدار"] || row["تاريخ الفاتورة"] || row["تاريخ الفاتورة *"] || "").trim();
                 let d="", m="", y="";
@@ -267,14 +425,33 @@ function processAndDownloadTaxCSV() {
                 let formattedDate = rawDate;
                 if (d && m && y) {
                     if (systemType === "old") {
-                        // التعديل هنا: استخدام علامة / بدلاً من .
                         formattedDate = `${parseInt(d)}/${parseInt(m)}/${y}`;
                     } else {
                         formattedDate = `${d}.${m}.${y}`;
                     }
                 }
 
+                let rawInvNum = String(row["الرقم الداخلى"] || row["رقم الفاتورة"] || "").replace(/,/g, '');
+                let cleanInvNum = rawInvNum;
+                
+                if (systemType === "old") {
+                    cleanInvNum = rawInvNum.replace(/[\s\/\-\\_]/g, '');
+                }
+                
+                if (!cleanInvNum || cleanInvNum === "0" || cleanInvNum === "00") {
+                    cleanInvNum = "1";
+                }
+
                 let rawTaxId = String(mode === "sales" ? (row["الرقم الضريبى للمشترى"] || row["رقم التسجيل الضريبي للعميل *"]) : (row["الرقم الضريبى للبائع"] || row["رقم التسجيل الضريبي للمورد"])).replace(/[^0-9]/g, '');
+                
+                let finalTaxId = "";
+                let finalNatId = "";
+
+                if (rawTaxId.length === 9) {
+                    finalTaxId = rawTaxId;
+                } else if (rawTaxId.length === 14) {
+                    finalNatId = rawTaxId;
+                }
                 
                 let netVal = parseFloat(row["قيمة الفاتورة"] || 0);
                 let taxVal = parseFloat(row["ضريبة القيمة المضافة"] || 0);
@@ -284,11 +461,11 @@ function processAndDownloadTaxCSV() {
                 if (systemType === "old") {
                     let rowData = [
                         codedDocType, 1, 0, 
-                        String(row["الرقم الداخلى"] || row["رقم الفاتورة"] || "").replace(/,/g, ''),
+                        cleanInvNum,
                         String(mode === "sales" ? (row["إسم المشترى"] || row["اسم العميل *"] || "") : (row["إسم البائع"] || row["اسم المورد *"] || "")).replace(/,/g, ' '),
-                        rawTaxId.length !== 14 ? rawTaxId : "",
+                        finalTaxId,
                         "", "القاهرة",
-                        rawTaxId.length === 14 ? rawTaxId : "",
+                        finalNatId,
                         "", formattedDate, "متنوع", "",
                         statementType, commodityType, "", 
                         netVal,
@@ -299,11 +476,11 @@ function processAndDownloadTaxCSV() {
                 } else {
                     let rowData = [
                         codedDocType, 1, 0, 
-                        String(row["الرقم الداخلى"] || row["رقم الفاتورة"] || "").replace(/,/g, ''),
+                        cleanInvNum, 
                         String(mode === "sales" ? (row["إسم المشترى"] || row["اسم العميل *"] || "") : (row["إسم البائع"] || row["اسم المورد *"] || "")).replace(/,/g, ' '),
-                        rawTaxId.length !== 14 ? rawTaxId : "",
+                        finalTaxId,
                         "", "القاهرة",
-                        rawTaxId.length === 14 ? rawTaxId : "",
+                        finalNatId,
                         "", formattedDate, "متنوع", "",
                         statementType, commodityType, "", 
                         netVal,
