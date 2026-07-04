@@ -352,7 +352,7 @@ function loadCompanyData() {
     }
 }
 
-function seedCompanyData() {} // اختصاراً لباقي الكود الغير مُعدل
+function seedCompanyData() {} 
 function renderCompanyData(rows) {
     const tbody = document.getElementById("compDataTbody");
     const countEl = document.getElementById("compDataCount");
@@ -468,7 +468,7 @@ function loadUsers() {
                 grid.innerHTML = html;
                 grid.querySelectorAll(".delete-user-btn").forEach(function(btn) {
                     btn.addEventListener("click", function() {
-                        if (!confirm("حذف المستخدم ده؟")) return;
+                        if (!confirm("حذف هذا المستخدم؟")) return;
                         db.collection("admin_users").doc(btn.dataset.id).delete()
                             .then(function() { showToast("تم الحذف"); loadUsers(); }).catch(console.error);
                     });
@@ -490,7 +490,7 @@ window.addUser = function() {
     const permissions = Array.from(checkboxes).map(cb => cb.value);
 
     if (!username || !password) { alert("يجب إدخال اسم المستخدم وكلمة المرور"); return; }
-    if (username === ADMIN_CREDENTIALS.username) { alert("اسم المستخدم ده محجوز"); return; }
+    if (username === ADMIN_CREDENTIALS.username) { alert("اسم المستخدم محجوز"); return; }
     if (!db) { showToast("Firebase غير متصل"); return; }
 
     db.collection("admin_users").add({
@@ -585,44 +585,3 @@ function loadClientsAdmin() {
         });
     }
 }
-// =====================================================================
-// === صفحة العملاء للزوار (clients.html) - تحميل ديناميكي ===
-// =====================================================================
-document.addEventListener("DOMContentLoaded", function() {
-    const marquee = document.getElementById("clientsMarquee");
-    if (!marquee) return;
-    initFirebase();
-    
-    function renderMarquee(items) {
-        function buildGroup(hidden) {
-            let h = `<div class="marquee-group"${hidden?' aria-hidden="true"':''}>`;
-            items.forEach(d => {
-                h += `<div class="service-card client-card"><h3 class="client-title">${d.nameAr} <span class="separator">|</span> <span class="client-en">${d.nameEn||d.nameAr}</span></h3></div>`;
-            });
-            return h+"</div>";
-        }
-        marquee.innerHTML = buildGroup(false) + buildGroup(true);
-    }
-
-    if (db) {
-        db.collection("clients").orderBy("createdAt","asc").get()
-            .then(function(snap) {
-                if (snap.empty) {
-                    // في حالة عدم وجود عملاء في قاعدة البيانات
-                    marquee.innerHTML = '<div style="text-align: center; padding: 20px; color: #fff;">لا يوجد عملاء مضافين حالياً.</div>';
-                    return;
-                }
-                const items = [];
-                snap.forEach(d => items.push(d.data()));
-                renderMarquee(items);
-            }).catch(console.error);
-    } else {
-        // الاعتماد على التخزين المحلي كبديل إذا لم تتصل قاعدة البيانات
-        let local = JSON.parse(localStorage.getItem("eleryan_clients_fallback")||"null");
-        if(local && local.length > 0) {
-            renderMarquee(local);
-        } else if (typeof CLIENTS_SEED !== 'undefined') {
-            renderMarquee(CLIENTS_SEED);
-        }
-    }
-});
