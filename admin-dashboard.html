@@ -228,16 +228,26 @@ function processAndDownloadTaxCSV() {
             builtCSVRows.push(englishHeaders.join(","));
 
             importedRows.forEach(row => {
+                // ==========================================================
+                // التعديل الجديد: فلترة الفواتير الملغية وغير الصالحة
+                // ==========================================================
+                let docStatus = String(row["حالة المستند"] || row["الحالة"] || row["Status"] || row["status"] || "").toLowerCase().trim();
+                
+                // لو حالة الفاتورة تحتوي على أي من كلمات الإلغاء، سيتم تخطيها بالكامل
+                if (docStatus.includes("cancel") || 
+                    docStatus.includes("invalid") || 
+                    docStatus.includes("ملغي") || 
+                    docStatus.includes("ملغاة") || 
+                    docStatus.includes("مرفوض")) {
+                    return; // التخطي والانتقال للصف التالي
+                }
+                // ==========================================================
+
                 let originalDocType = String(row["نوع المستند"] || row["نوع المستند *"] || "").trim();
                 let isCreditNote = (originalDocType.includes("إشعار") || originalDocType.includes("اشعار") || originalDocType.includes("Credit"));
                 
-                // نوع المستند: إشعار = 3، فاتورة = 1
                 let codedDocType = isCreditNote ? 3 : 1;
-                
-                // نوع البيان: إشعار = 5 (تسوية)، فاتورة = 3 (مبيعات) أو 1 (مشتريات)
                 let statementType = isCreditNote ? 5 : (mode === "sales" ? 3 : 1);
-                
-                // نوع السلعة: مبيعات = 1 (محلي)، مشتريات = 3 (سلعة)
                 let commodityType = (mode === "sales" ? 1 : 3);
                 
                 let rawDate = String(row["تاريخ الإصدار"] || row["تاريخ الفاتورة"] || row["تاريخ الفاتورة *"] || "").trim();
