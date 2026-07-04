@@ -63,6 +63,14 @@
             </h3>
             
             <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 160px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">نوع المنظومة:</label>
+                    <select id="systemType" style="width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; background-color: #f8fafc; font-weight: 600; outline: none;">
+                        <option value="new">منظومة جديدة</option>
+                        <option value="old">منظومة قديمة</option>
+                    </select>
+                </div>
+
                 <div style="flex: 1; min-width: 180px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">1. نوع المعاملة الدفترية:</label>
                     <select id="taxInvoiceType" style="width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; background-color: #f8fafc; font-weight: 600; outline: none;">
@@ -201,6 +209,7 @@
 function processAndDownloadTaxCSV() {
     const fileInput = document.getElementById("taxExcelFile");
     const mode = document.getElementById("taxInvoiceType").value;
+    const systemType = document.getElementById("systemType").value;
     const statusEl = document.getElementById("taxConverterStatus");
 
     if (!fileInput.files || fileInput.files.length === 0) {
@@ -220,32 +229,29 @@ function processAndDownloadTaxCSV() {
             const currentWorksheet = loadedWorkbook.Sheets[currentSheetName];
             const importedRows = XLSX.utils.sheet_to_json(currentWorksheet, { raw: false, defval: "" });
 
-            let arabicHeaders = ["نوع المستند *", "نوع الضريبة *", "نوع سلع الجدول *", "رقم الفاتورة *", (mode === "sales" ? "اسم العميل *" : "اسم المورد *"), "رقم التسجيل الضريبي للعميل *", "رقم الملف الضريبي للعميل", "العنوان *", "الرقم القومي / رقم جواز السفر", "رقم الموبيل", "تاريخ الفاتورة *", "إسم المنتج *", "كود المنتج", "نوع البيان *", "نوع السلعة *", "وحدة قياس المنتج", "سعر الوحدة *", "فئة الضريبة *", "كمية المنتج *", "المبلغ الإجمالي *", "قيمة الخصم", "المبلغ الصافي *", "قيمة الضريبة *", "الإجمالي *"];
-            let englishHeaders = [ (mode === "sales" ? "DOC_TYP_S" : "DOC_TYP_P"), "TAX_TYP", "TYP_SCH", "INVNUM", "CUST_NAME", "CUST_REG_NO", "CUST_FILE_NO", "ADDRESS", "ID", "PHONE", "DOC_TIN_NUM", "PROD_NAME", "PROD_CODE", (mode === "sales" ? "STAT_TYPE_S" : "STAT_TYPE_P"), (mode === "sales" ? "COMM_TYPE_S" : "COMM_TYPE_P"), "PMU", "UNITP", "TAX_CAT", "QOP", "TAMMOUNT", "DISC", "NET_AMM", "TAX_VAL", "TOTAL"];
-
             let builtCSVRows = [];
-            builtCSVRows.push(arabicHeaders.join(","));
-            builtCSVRows.push(englishHeaders.join(","));
+
+            if (systemType === "old") {
+                let oldSalesHeaders = ['نوع المستند (فاتورة 1/ إشعار إضافة 2/إشعار خصم 3/مستهلك نهائي محلي 5/جهة-حكومة 6/مستهلك نهائي أجنبي 7)', 'نوع الضريبة (سلع عامة 1/سلع جدول 2)', 'نوع سلع الجدول (لايوجد 0/جدول أولا 1/جدول ثانيا 2)', 'رقم الفاتورة', 'اسم العميل', 'رقم التسجيل الضريبي للعميل', 'رقم الملف الضريبي للعميل', 'العنوان', 'الرقم القومي / رقم جواز السفر', 'رقم الموبيل', 'تاريخ الفاتورة', 'إسم المنتج', 'كود المنتج', 'نوع البيان (سلعة 3/خدمة 4/تسويات 5)', 'نوع السلعة (محلي 1/صادرات 2/آلات ومعدات 5/أجزاء آلات 6/إعفاءات 7 /  سلع الجدول  مراجعة الإرشادات ) ', 'وحدة قياس المنتج', 'سعر الوحدة', 'فئة الضريبة (14%/5%)', 'كمية المنتج', 'المبلغ الصافي', 'قيمة الضريبة', 'إجمالي'];
+                let oldPurchasesHeaders = ['نوع المستند (فاتورة 1/ إشعار إضافة 2/إشعار خصم 3/إذن إفراج 4)', 'نوع الضريبة (سلع عامة 1/سلع جدول 2)', 'نوع سلع الجدول (لايوجد 0/جدول أولا 1/جدول ثانيا 2)', 'رقم الفاتورة', 'اسم المورد', 'رقم التسجيل الضريبي للعميل', 'رقم الملف الضريبي للعميل', 'العنوان', 'الرقم القومي', 'رقم الموبيل', 'تاريخ الفاتورة', 'إسم المنتج', 'كود المنتج', 'نوع البيان (محلي 1/مستورد 2/تسويات 5)', 'نوع السلعة (سلع 3/خدمات 4/آلات ومعدات 5/أجزاء آلات 6/إعفاءات 7)', 'وحدة قياس المنتج', 'سعر الوحدة', 'فئة الضريبة (14%/5%)', 'كمية المنتج', 'المبلغ الصافي', 'قيمة الضريبة', 'إجمالي'];
+                
+                builtCSVRows.push((mode === "sales" ? oldSalesHeaders : oldPurchasesHeaders).join(","));
+            } else {
+                let newArabicHeaders = ["نوع المستند *", "نوع الضريبة *", "نوع سلع الجدول *", "رقم الفاتورة *", (mode === "sales" ? "اسم العميل *" : "اسم المورد *"), "رقم التسجيل الضريبي للعميل *", "رقم الملف الضريبي للعميل", "العنوان *", "الرقم القومي / رقم جواز السفر", "رقم الموبيل", "تاريخ الفاتورة *", "إسم المنتج *", "كود المنتج", "نوع البيان *", "نوع السلعة *", "وحدة قياس المنتج", "سعر الوحدة *", "فئة الضريبة *", "كمية المنتج *", "المبلغ الإجمالي *", "قيمة الخصم", "المبلغ الصافي *", "قيمة الضريبة *", "الإجمالي *"];
+                let newEnglishHeaders = [ (mode === "sales" ? "DOC_TYP_S" : "DOC_TYP_P"), "TAX_TYP", "TYP_SCH", "INVNUM", "CUST_NAME", "CUST_REG_NO", "CUST_FILE_NO", "ADDRESS", "ID", "PHONE", "DOC_TIN_NUM", "PROD_NAME", "PROD_CODE", (mode === "sales" ? "STAT_TYPE_S" : "STAT_TYPE_P"), (mode === "sales" ? "COMM_TYPE_S" : "COMM_TYPE_P"), "PMU", "UNITP", "TAX_CAT", "QOP", "TAMMOUNT", "DISC", "NET_AMM", "TAX_VAL", "TOTAL"];
+                
+                builtCSVRows.push(newArabicHeaders.join(","));
+                builtCSVRows.push(newEnglishHeaders.join(","));
+            }
 
             importedRows.forEach(row => {
-                // ==========================================================
-                // التعديل الجديد: فلترة الفواتير الملغية وغير الصالحة
-                // ==========================================================
                 let docStatus = String(row["حالة المستند"] || row["الحالة"] || row["Status"] || row["status"] || "").toLowerCase().trim();
-                
-                // لو حالة الفاتورة تحتوي على أي من كلمات الإلغاء، سيتم تخطيها بالكامل
-                if (docStatus.includes("cancel") || 
-                    docStatus.includes("invalid") || 
-                    docStatus.includes("ملغي") || 
-                    docStatus.includes("ملغاة") || 
-                    docStatus.includes("مرفوض")) {
-                    return; // التخطي والانتقال للصف التالي
+                if (docStatus.includes("cancel") || docStatus.includes("invalid") || docStatus.includes("ملغي") || docStatus.includes("ملغاة") || docStatus.includes("مرفوض")) {
+                    return; 
                 }
-                // ==========================================================
 
                 let originalDocType = String(row["نوع المستند"] || row["نوع المستند *"] || "").trim();
                 let isCreditNote = (originalDocType.includes("إشعار") || originalDocType.includes("اشعار") || originalDocType.includes("Credit"));
-                
                 let codedDocType = isCreditNote ? 3 : 1;
                 let statementType = isCreditNote ? 5 : (mode === "sales" ? 3 : 1);
                 let commodityType = (mode === "sales" ? 1 : 3);
@@ -257,38 +263,66 @@ function processAndDownloadTaxCSV() {
                     if (parts[2].length >= 4) { y = parts[2]; m = parseInt(parts[1], 10); d = parseInt(parts[0], 10); }
                     else { y = (parts[2].length === 2 ? "20" : "") + parts[2]; m = parseInt(parts[0], 10); d = parseInt(parts[1], 10); }
                 }
-                let formattedDate = (d && m && y) ? `${d}.${m}.${y}` : rawDate;
+
+                let formattedDate = rawDate;
+                if (d && m && y) {
+                    if (systemType === "old") {
+                        // التعديل هنا: استخدام علامة / بدلاً من .
+                        formattedDate = `${parseInt(d)}/${parseInt(m)}/${y}`;
+                    } else {
+                        formattedDate = `${d}.${m}.${y}`;
+                    }
+                }
 
                 let rawTaxId = String(mode === "sales" ? (row["الرقم الضريبى للمشترى"] || row["رقم التسجيل الضريبي للعميل *"]) : (row["الرقم الضريبى للبائع"] || row["رقم التسجيل الضريبي للمورد"])).replace(/[^0-9]/g, '');
                 
-                let rowData = [
-                    codedDocType, 1, 0, 
-                    String(row["الرقم الداخلى"] || row["رقم الفاتورة"] || "").replace(/,/g, ''),
-                    String(mode === "sales" ? (row["إسم المشترى"] || row["اسم العميل *"] || "") : (row["إسم البائع"] || row["اسم المورد *"] || "")).replace(/,/g, ' '),
-                    rawTaxId.length !== 14 ? rawTaxId : "",
-                    "", "القاهرة",
-                    rawTaxId.length === 14 ? rawTaxId : "",
-                    "", formattedDate, "متنوع", "",
-                    statementType, commodityType, "", 
-                    parseFloat(row["قيمة الفاتورة"] || 0),
-                    (mode === "sales" ? 1 : 14), 1,
-                    parseFloat(row["قيمة الفاتورة"] || 0),
-                    parseFloat(row["خصم الفاتورة"] || 0),
-                    parseFloat(row["قيمة الفاتورة"] || 0),
-                    parseFloat(row["ضريبة القيمة المضافة"] || 0),
-                    parseFloat(row["إجمالى الفاتورة"] || 0)
-                ];
-                builtCSVRows.push(rowData.join(","));
+                let netVal = parseFloat(row["قيمة الفاتورة"] || 0);
+                let taxVal = parseFloat(row["ضريبة القيمة المضافة"] || 0);
+                let totalVal = parseFloat(row["إجمالى الفاتورة"] || 0);
+                let discVal = parseFloat(row["خصم الفاتورة"] || 0);
+
+                if (systemType === "old") {
+                    let rowData = [
+                        codedDocType, 1, 0, 
+                        String(row["الرقم الداخلى"] || row["رقم الفاتورة"] || "").replace(/,/g, ''),
+                        String(mode === "sales" ? (row["إسم المشترى"] || row["اسم العميل *"] || "") : (row["إسم البائع"] || row["اسم المورد *"] || "")).replace(/,/g, ' '),
+                        rawTaxId.length !== 14 ? rawTaxId : "",
+                        "", "القاهرة",
+                        rawTaxId.length === 14 ? rawTaxId : "",
+                        "", formattedDate, "متنوع", "",
+                        statementType, commodityType, "", 
+                        netVal,
+                        (mode === "sales" ? 1 : 14), 1,
+                        netVal, taxVal, totalVal
+                    ];
+                    builtCSVRows.push(rowData.join(","));
+                } else {
+                    let rowData = [
+                        codedDocType, 1, 0, 
+                        String(row["الرقم الداخلى"] || row["رقم الفاتورة"] || "").replace(/,/g, ''),
+                        String(mode === "sales" ? (row["إسم المشترى"] || row["اسم العميل *"] || "") : (row["إسم البائع"] || row["اسم المورد *"] || "")).replace(/,/g, ' '),
+                        rawTaxId.length !== 14 ? rawTaxId : "",
+                        "", "القاهرة",
+                        rawTaxId.length === 14 ? rawTaxId : "",
+                        "", formattedDate, "متنوع", "",
+                        statementType, commodityType, "", 
+                        netVal,
+                        (mode === "sales" ? 1 : 14), 1,
+                        netVal, discVal, netVal, taxVal, totalVal
+                    ];
+                    builtCSVRows.push(rowData.join(","));
+                }
             });
 
             const blob = new Blob(["\uFEFF" + builtCSVRows.join("\r\n")], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `Export_${mode}_${new Date().getTime()}.csv`;
+            let systemLabel = systemType === "old" ? "قديمة" : "جديدة";
+            link.download = `Export_${mode}_منظومة_${systemLabel}_${new Date().getTime()}.csv`;
             link.click();
             
             statusEl.style.color = "green";
-            statusEl.textContent = "تم استخراج ملف الـ CSV بنجاح!";
+            statusEl.textContent = `تم استخراج ملف CSV (مبيعات/مشتريات) للمنظومة الـ ${systemLabel} بنجاح!`;
         } catch (err) { console.error(err); statusEl.textContent = "خطأ في معالجة الملف."; }
     };
     fileReader.readAsArrayBuffer(selectedFile);
