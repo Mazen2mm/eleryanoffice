@@ -439,13 +439,11 @@ function processAndDownloadTaxCSV() {
                     }
                 }
 
-                let rawInvNum = String(row["الرقم الداخلى"] || row["رقم الفاتورة"] || "").replace(/,/g, '');
-                let cleanInvNum = rawInvNum;
-                
-                if (systemType === "old") {
-                    cleanInvNum = rawInvNum.replace(/[\s\/\-\\_]/g, '');
-                }
-                
+                let rawInvNum = String(row["الرقم الداخلى"] || row["رقم الفاتورة"] || "");
+                // بناخد الأرقام بس من رقم الفاتورة ونتجاهل أي حروف أو مسافات أو رموز
+                // مثال: a123 -> 123
+                let cleanInvNum = rawInvNum.replace(/[^0-9]/g, '');
+
                 if (!cleanInvNum || cleanInvNum === "0" || cleanInvNum === "00") {
                     cleanInvNum = "1";
                 }
@@ -464,7 +462,8 @@ function processAndDownloadTaxCSV() {
                 let netVal = parseFloat(row["قيمة الفاتورة"] || 0);
                 let taxVal = parseFloat(row["ضريبة القيمة المضافة"] || 0);
                 let totalVal = parseFloat(row["إجمالى الفاتورة"] || 0);
-                let discVal = parseFloat(row["خصم الفاتورة"] || 0);
+                // بتجاهل أي خصم على الفاتورة (وأي علاقة بضريبة الخصم والإضافة) - إقرار القيمة المضافة مش بيتأثر بيهم خالص
+                let discVal = 0;
 
                 if (netVal !== 0 || taxVal !== 0 || totalVal !== 0) anyRowHadValues = true;
 
