@@ -377,6 +377,12 @@ function processAndDownloadTaxCSV() {
             const currentWorksheet = loadedWorkbook.Sheets[currentSheetName];
             const importedRows = XLSX.utils.sheet_to_json(currentWorksheet, { raw: false, defval: "" });
 
+            if (importedRows.length === 0) {
+                statusEl.style.color = "#ef4444";
+                statusEl.textContent = "الملف المرفوع فارغ!";
+                return;
+            }
+
             let builtCSVRows = [];
 
             if (systemType === "old") {
@@ -391,6 +397,8 @@ function processAndDownloadTaxCSV() {
                 builtCSVRows.push(newArabicHeaders.join(","));
                 builtCSVRows.push(newEnglishHeaders.join(","));
             }
+
+            let anyRowHadValues = false;
 
             importedRows.forEach(row => {
                 let docStatus = String(row["حالة المستند"] || row["الحالة"] || row["Status"] || row["status"] || "").toLowerCase().trim();
@@ -442,7 +450,7 @@ function processAndDownloadTaxCSV() {
                     cleanInvNum = "1";
                 }
 
-                let rawTaxId = String(mode === "sales" ? (row["الرقم الضريبى للمشترى"] || row["رقم التسجيل الضريبي للعميل *"]) : (row["الرقم الضريبى للبائع"] || row["رقم التسجيل الضريبي للمورد"])).replace(/[^0-9]/g, '');
+                let rawTaxId = String((mode === "sales" ? (row["الرقم الضريبى للمشترى"] || row["رقم التسجيل الضريبي للعميل *"]) : (row["الرقم الضريبى للبائع"] || row["رقم التسجيل الضريبي للمورد"])) || "").replace(/[^0-9]/g, '');
                 
                 let finalTaxId = "";
                 let finalNatId = "";
@@ -457,6 +465,8 @@ function processAndDownloadTaxCSV() {
                 let taxVal = parseFloat(row["ضريبة القيمة المضافة"] || 0);
                 let totalVal = parseFloat(row["إجمالى الفاتورة"] || 0);
                 let discVal = parseFloat(row["خصم الفاتورة"] || 0);
+
+                if (netVal !== 0 || taxVal !== 0 || totalVal !== 0) anyRowHadValues = true;
 
                 if (systemType === "old") {
                     let rowData = [
@@ -498,8 +508,10 @@ function processAndDownloadTaxCSV() {
             link.download = `Export_${mode}_منظومة_${systemLabel}_${new Date().getTime()}.csv`;
             link.click();
             
-            statusEl.style.color = "green";
-            statusEl.textContent = `تم استخراج ملف CSV (مبيعات/مشتريات) للمنظومة الـ ${systemLabel} بنجاح!`;
+            statusEl.style.color = anyRowHadValues ? "green" : "#f39c12";
+            statusEl.textContent = anyRowHadValues
+                ? `تم استخراج ملف CSV (مبيعات/مشتريات) للمنظومة الـ ${systemLabel} بنجاح!`
+                : `تنبيه: تم استخراج الملف، لكن كل القيم (الصافي/الضريبة/الإجمالي) طلعت صفر في كل الصفوف. على الأغلب أسماء أعمدة الشيت مش مطابقة للمتوقع - راجع الملف قبل رفعه.`;
         } catch (err) { console.error(err); statusEl.textContent = "خطأ في معالجة الملف."; }
     };
     fileReader.readAsArrayBuffer(selectedFile);
