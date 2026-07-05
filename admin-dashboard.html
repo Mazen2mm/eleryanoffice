@@ -1,724 +1,544 @@
-// =====================================================================
-// الحساب الرئيسي الثابت (لا يُحذف أبداً)
-// ملحوظة: كلمة المرور مخزنة هنا كـ SHA-256 hash مش نص صريح.
-// =====================================================================
-const ADMIN_CREDENTIALS = {
-    username: "eleryanofficeteam",
-    passwordHash: "15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225"
-};
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مكتب هاني العريان | لوحة التحكم</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+<link rel="shortcut icon" href="1.png" type="image/x-icon">
 
-// دالة تشفير كلمة المرور بطريقة SHA-256 (one-way hash)
-// أي كلمة مرور بتتحفظ أو تتقارن بتعدي على الدالة دي الأول
-async function hashPassword(password) {
-    const enc = new TextEncoder().encode(password);
-    const buf = await crypto.subtle.digest("SHA-256", enc);
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="admin-body" style="align-items: flex-start; padding: 25px 15px;">
 
-// =====================================================================
-// Firebase Config
-// =====================================================================
-const firebaseConfig = {
-    apiKey: "AIzaSyBVm0NZbsWb2Ive85OYA0E1inXMGXaOXTE",
-    authDomain: "eleryanoffice0.firebaseapp.com",
-    projectId: "eleryanoffice0",
-    storageBucket: "eleryanoffice0.firebasestorage.app",
-    messagingSenderId: "625913873615",
-    appId: "1:625913873615:web:c8861075546718968423ba"
-};
+<div class="dashboard">
 
-let db = null;
-function initFirebase() {
-    if (typeof firebase === "undefined") return false;
-    try {
-        if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        db = firebase.firestore();
-        return true;
-    } catch(e){ console.error(e); return false; }
-}
-
-// =====================================================================
-// حماية صفحات الأدمن والصلاحيات
-// =====================================================================
-const PROTECTED_PAGES = {
-    "admin-home.html": "all", 
-    "admin-dashboard.html": "declarations",
-    "admin-clients.html": "clients",
-    "admin-companies.html": "companies",
-    "admin-users.html": "users",
-    "attendance.html": "attendance_click",
-    "attendance-report.html": "attendance_report"
-};
-
-const currentPage = window.location.pathname.split("/").pop();
-
-if (PROTECTED_PAGES[currentPage]) {
-    const loggedInUser = sessionStorage.getItem("eleryan_user_logged_in");
-    const userRole = sessionStorage.getItem("eleryan_user_role"); // "admin" أو "user"
-    const userPermissions = JSON.parse(sessionStorage.getItem("eleryan_user_permissions") || "[]");
-
-    if (!loggedInUser) {
-        window.location.href = "admin-login.html";
-    } else if (userRole !== "admin") {
-        // التحقق من الصلاحيات للمستخدمين العاديين
-        const requiredPermission = PROTECTED_PAGES[currentPage];
-        if (requiredPermission !== "all" && !userPermissions.includes(requiredPermission)) {
-            // توجيه لصفحة عدم الصلاحية بدلاً من رسالة Alert
-            window.location.href = "no-permission.html";
-        }
-    }
-}
-
-// =====================================================================
-// Helpers
-// =====================================================================
-function showToast(msg) {
-    const t = document.getElementById("saveToast");
-    if (!t) return;
-    t.querySelector("span").textContent = msg || "تم الحفظ بنجاح";
-    t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 2500);
-}
-function flashEl(el) {
-    if (!el) return;
-    el.classList.add("saved-flash");
-    setTimeout(() => el.classList.remove("saved-flash"), 900);
-}
-function setupLogout(btnId) {
-    const b = document.getElementById(btnId);
-    if (b) b.addEventListener("click", function() {
-        sessionStorage.clear(); // تفريغ الجلسة بالكامل
-        window.location.href = "admin-login.html";
-    });
-}
-
-// =====================================================================
-// الشركات الافتراضية في الإقرارات
-// =====================================================================
-const DEFAULT_DECL_COMPANIES = [
-    {id:"c1",  name:"لاكوزين", person:"خالد عبد اللطيف عبد الوهاب", createdAt:1},
-    {id:"c2",  name:"شريف عبد الوهاب", person:"شريف عبد اللطيف عبد الوهاب", createdAt:2},
-    {id:"c3",  name:"البدراويه", person:"محمد كمال عبد العزيز", createdAt:3},
-    {id:"c4",  name:"المتحده شركه", person:"محمود ابو الحجاج", createdAt:4},
-    {id:"c5",  name:"لاكوستر", person:"عمرو", createdAt:5},
-    {id:"c6",  name:"جرين لاين بيكيا", person:"احمد ماجد", createdAt:6},
-    {id:"c7",  name:"تيرا بيلد", person:"صالح عيد هواري", createdAt:7},
-    {id:"c8",  name:"نسر العرب", person:"محمد محمد ممثل", createdAt:8},
-    {id:"c9",  name:"ديماتك", person:"احمد سعيد سلام", createdAt:9},
-    {id:"c10", name:"بونيتيرا لاعمال الكهروميكانيكية", person:"هشام احمد محمد عمر", createdAt:10},
-    {id:"c11", name:"بونيتيرا للديكور", person:"هشام احمد محمد عمر", createdAt:11},
-    {id:"c12", name:"بونيتيرا للانشاءات", person:"هشام احمد محمد عمر", createdAt:12},
-    {id:"c13", name:"بونيتيرا لتشغيل وادارة المنشئات", person:"هشام احمد محمد عمر", createdAt:13}
-];
-
-const MONTHS = [
-    {v:1,t:"1 - يناير"},{v:2,t:"2 - فبراير"},{v:3,t:"3 - مارس"},
-    {v:4,t:"4 - أبريل"},{v:5,t:"5 - مايو"},{v:6,t:"6 - يونيو"},
-    {v:7,t:"7 - يوليو"},{v:8,t:"8 - أغسطس"},{v:9,t:"9 - سبتمبر"},
-    {v:10,t:"10 - أكتوبر"},{v:11,t:"11 - نوفمبر"},{v:12,t:"12 - ديسمبر"}
-];
-function getYears() {
-    const y = new Date().getFullYear();
-    const a = [];
-    for (let i = y-3; i <= y+3; i++) a.push(i);
-    return a;
-}
-const DECLARATION_TYPES = ["vat","withholding","payroll","income"];
-
-// =====================================================================
-// === صفحة الداشبورد (الإقرارات) ===
-// =====================================================================
-document.addEventListener("DOMContentLoaded", function() {
-    if (!document.querySelector(".dashboard")) return;
-    const pageName = currentPage;
-    if (pageName !== "admin-dashboard.html") return;
-
-    initFirebase();
-    setupLogout("logoutBtn");
-
-    document.querySelectorAll(".admin-tab-btn").forEach(function(btn) {
-        btn.addEventListener("click", function() {
-            document.querySelectorAll(".admin-tab-btn").forEach(b => b.classList.remove("active"));
-            document.querySelectorAll(".admin-panel").forEach(p => p.classList.remove("active"));
-            btn.classList.add("active");
-            document.getElementById("panel-"+btn.dataset.tab).classList.add("active");
-            history.replaceState(null,"","#"+btn.dataset.tab);
-        });
-    });
-
-    const hashTab = window.location.hash.replace("#","");
-    if (hashTab) {
-        const tb = document.querySelector('.admin-tab-btn[data-tab="'+hashTab+'"]');
-        if (tb) tb.click();
-    }
-
-    document.querySelectorAll(".company-search").forEach(function(inp) {
-        inp.addEventListener("input", function() {
-            const panel = this.dataset.panel;
-            const q = this.value.trim();
-            document.querySelectorAll("#tbody-"+panel+" tr").forEach(function(row) {
-                row.style.display = row.dataset.companyName && row.dataset.companyName.includes(q) ? "" : "none";
-            });
-        });
-    });
-
-    DECLARATION_TYPES.forEach(loadDeclPanel);
-});
-
-function loadDeclPanel(type) {
-    const tbody = document.getElementById("tbody-"+type);
-    if (!tbody) return;
-    getCompaniesForDecl(type, function(companies) {
-        renderDeclTable(type, companies);
-        loadDeclData(type, companies);
-    });
-}
-
-function getCompaniesForDecl(type, callback) {
-    if (db) {
-        db.collection("decl_companies").doc(type).collection("list")
-            .orderBy("lastFiled","asc").get()
-            .then(function(snap) {
-                if (!snap.empty) {
-                    const companies = [];
-                    snap.forEach(d => companies.push({id: d.id, ...d.data()}));
-                    callback(companies);
-                } else { seedDefaultCompanies(type, callback); }
-            }).catch(function() { callback(DEFAULT_DECL_COMPANIES); });
-    } else { callback(DEFAULT_DECL_COMPANIES); }
-}
-
-function seedDefaultCompanies(type, callback) {
-    if (!db) { callback(DEFAULT_DECL_COMPANIES); return; }
-    const batch = db.batch();
-    DEFAULT_DECL_COMPANIES.forEach(function(c) {
-        const ref = db.collection("decl_companies").doc(type).collection("list").doc(c.id);
-        batch.set(ref, {name: c.name, person: c.person, lastFiled: c.createdAt});
-    });
-    batch.commit().then(function() { getCompaniesForDecl(type, callback); })
-    .catch(function() { callback(DEFAULT_DECL_COMPANIES); });
-}
-
-function renderDeclTable(type, companies) {
-    const tbody = document.getElementById("tbody-"+type);
-    const isMonthly = type !== "income";
-    let html = "";
-
-    companies.forEach(function(company, idx) {
-        html += `<tr data-company-id="${company.id}" data-company-name="${company.name}">
-            <td>${idx+1}</td>
-            <td class="company-name">${company.name}</td>
-            <td><input type="text" class="admin-select person-input"
-                style="width:170px;text-align:center;border:1px solid #d8dedb;border-radius:8px;padding:8px 10px;"
-                data-type="${type}" data-company="${company.id}" data-field="person"
-                value="${company.person || ""}"></td>`;
-
-        if (isMonthly) {
-            html += `<td><select class="admin-select" data-type="${type}" data-company="${company.id}" data-field="month">
-                ${MONTHS.map(m=>`<option value="${m.v}">${m.t}</option>`).join("")}
-            </select></td>`;
-        }
-
-        html += `<td><select class="admin-select" data-type="${type}" data-company="${company.id}" data-field="year">
-                ${getYears().map(y=>`<option value="${y}">${y}</option>`).join("")}
-            </select></td>
-            <td><button class="decl-delete-btn" data-type="${type}" data-company="${company.id}" title="حذف الشركة"><i class="fa-solid fa-trash"></i></button></td>
-        </tr>`;
-    });
-
-    tbody.innerHTML = html;
-
-    tbody.querySelectorAll("select.admin-select, input.person-input").forEach(function(el) {
-        const evt = el.tagName === "SELECT" ? "change" : "blur";
-        el.addEventListener(evt, function() {
-            saveDeclField(el.dataset.type, el.dataset.company, el.dataset.field, el.value, el);
-        });
-    });
-
-    tbody.querySelectorAll(".decl-delete-btn").forEach(function(btn) {
-        btn.addEventListener("click", function() {
-            if (!confirm("عايز تحذف الشركة دي من الإقرار ده؟")) return;
-            const type = btn.dataset.type;
-            const cid = btn.dataset.company;
-            if (db) {
-                db.collection("decl_companies").doc(type).collection("list").doc(cid).delete()
-                    .then(function() { loadDeclPanel(type); showToast("تم الحذف"); })
-                    .catch(function(e) { console.error(e); });
-            } else { showToast("Firebase غير متصل"); }
-        });
-    });
-}
-
-function loadDeclData(type, companies) {
-    companies.forEach(function(company) {
-        const localKey = "eleryan_"+type+"_"+company.id;
-        const localData = JSON.parse(localStorage.getItem(localKey)||"{}");
-        applyDataToRow(type, company.id, localData);
-
-        if (db) {
-            db.collection("declarations").doc(type).collection("companies").doc(company.id)
-                .get().then(function(doc) {
-                    if (doc.exists) {
-                        applyDataToRow(type, company.id, doc.data());
-                        localStorage.setItem(localKey, JSON.stringify(doc.data()));
-                    }
-                }).catch(console.error);
-        }
-    });
-}
-
-function saveDeclField(type, companyId, field, value, el) {
-    const localKey = "eleryan_"+type+"_"+companyId;
-    let localData = JSON.parse(localStorage.getItem(localKey)||"{}");
-    localData[field] = value;
-    localStorage.setItem(localKey, JSON.stringify(localData));
-
-    const rowEl = el.closest("tr");
-    let month = 0, year = 0;
-    if (rowEl) {
-        const mEl = rowEl.querySelector('[data-field="month"]');
-        const yEl = rowEl.querySelector('[data-field="year"]');
-        month = mEl ? parseInt(mEl.value)||0 : 0;
-        year  = yEl ? parseInt(yEl.value)||0 : 0;
-    }
-    const lastFiled = year * 100 + month;
-
-    if (db) {
-        const p1 = db.collection("declarations").doc(type).collection("companies").doc(companyId)
-            .set({[field]: value}, {merge:true});
-        const p2 = db.collection("decl_companies").doc(type).collection("list").doc(companyId)
-            .set({lastFiled: lastFiled}, {merge:true});
-        Promise.all([p1, p2])
-            .then(function() { showToast(); flashEl(el); loadDeclPanel(type); })
-            .catch(function(e) { console.error(e); showToast("خطأ - تحقق من Firebase"); });
-    } else {
-        showToast("تم الحفظ محلياً فقط");
-        flashEl(el);
-    }
-}
-
-function addDeclCompany(type) {
-    const inp = document.getElementById("addDeclInput-"+type);
-    const name = inp ? inp.value.trim() : "";
-    if (!name) return;
-    if (!db) { showToast("Firebase غير متصل"); return; }
-
-    const newId = "c_"+Date.now();
-    db.collection("decl_companies").doc(type).collection("list").doc(newId)
-        .set({name: name, person: "", lastFiled: 0})
-        .then(function() {
-            if (inp) inp.value = "";
-            showToast("تمت الإضافة");
-            loadDeclPanel(type);
-        }).catch(console.error);
-}
-
-function applyDataToRow(type, companyId, data) {
-    if (!data) return;
-    ["person","month","year"].forEach(function(field) {
-        if (data[field] === undefined) return;
-        const el = document.querySelector(`[data-type="${type}"][data-company="${companyId}"][data-field="${field}"]`);
-        if (el) el.value = data[field];
-    });
-}
-
-// =====================================================================
-// === صفحة بيانات الشركات ===
-// =====================================================================
-const COMP_DATA_SEED = [];
-document.addEventListener("DOMContentLoaded", function() {
-    if (currentPage !== "admin-companies.html") return;
-    initFirebase();
-    setupLogout("logoutBtn");
-
-    document.getElementById("compDataSearch").addEventListener("input", function() {
-        const q = this.value.trim().toLowerCase();
-        document.querySelectorAll("#compDataTbody tr").forEach(function(row) {
-            const n = row.dataset.companyName || "";
-            row.style.display = n.toLowerCase().includes(q) ? "" : "none";
-        });
-    });
-    loadCompanyData();
-});
-
-function loadCompanyData() {
-    const tbody = document.getElementById("compDataTbody");
-    if (!tbody) return;
-
-    if (db) {
-        db.collection("company_data").orderBy("createdAt","asc").get()
-            .then(function(snap) {
-                if (snap.empty) { seedCompanyData(); } 
-                else {
-                    const rows = [];
-                    snap.forEach(d => rows.push({id: d.id, ...d.data()}));
-                    renderCompanyData(rows);
-                }
-            }).catch(function(e) { console.error(e); });
-    } else {
-        const local = JSON.parse(localStorage.getItem("eleryan_company_data")||"null");
-        if (local) renderCompanyData(local);
-    }
-}
-
-function seedCompanyData() {} 
-function renderCompanyData(rows) {
-    const tbody = document.getElementById("compDataTbody");
-    const countEl = document.getElementById("compDataCount");
-    if (countEl) countEl.textContent = "("+rows.length+" شركة)";
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="18" style="padding:30px;color:#999;">لا يوجد بيانات</td></tr>'; return; }
-    let html = "";
-    rows.forEach(function(row, idx) {
-        html += `<tr data-company-name="${row.name||""}">
-            <td>${idx+1}</td>
-            <td class="col-company"><input data-id="${row.id}" data-field="name" value="${esc(row.name)}"></td>
-            <td class="col-type"><input data-id="${row.id}" data-field="type" value="${esc(row.type)}"></td>
-            <td class="col-system"><input data-id="${row.id}" data-field="system" value="${esc(row.system)}"></td>
-            <td><input data-id="${row.id}" data-field="email" value="${esc(row.email)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="emailpass" value="${esc(row.emailpass)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="sysuser" value="${esc(row.sysuser)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="syspass" value="${esc(row.syspass)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="natid" value="${esc(row.natid)}" class="col-natid"></td>
-            <td><input data-id="${row.id}" data-field="regno" value="${esc(row.regno)}" class="col-reg"></td>
-            <td><input data-id="${row.id}" data-field="einvuser" value="${esc(row.einvuser)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="einvpass" value="${esc(row.einvpass)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="piencode" value="${esc(row.piencode)}"></td>
-            <td><input data-id="${row.id}" data-field="salaries" value="${esc(row.salaries)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="acccode" value="${esc(row.acccode)}"></td>
-            <td><input data-id="${row.id}" data-field="accpass" value="${esc(row.accpass)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="notes" value="${esc(row.notes)}"></td>
-            <td class="col-del"><button class="decl-delete-btn comp-delete-btn" data-id="${row.id}"><i class="fa-solid fa-trash"></i></button></td>
-        </tr>`;
-    });
-    tbody.innerHTML = html;
-
-    // تحديد عرض كل خلية تلقائياً على حسب طول النص المكتوب فيها
-    tbody.querySelectorAll("input").forEach(function(inp) {
-        autoSizeCompanyInput(inp);
-        inp.addEventListener("input", function() { autoSizeCompanyInput(inp); });
-
-        inp.addEventListener("focus", function() {
-            inp.dataset.prevValue = inp.value;
-        });
-
-        inp.addEventListener("blur", function() {
-            const oldValue = inp.dataset.prevValue !== undefined ? inp.dataset.prevValue : inp.value;
-            if (oldValue !== inp.value) {
-                window.companyUndoStack.push({ id: inp.dataset.id, field: inp.dataset.field, oldValue: oldValue, newValue: inp.value });
-                window.companyRedoStack = [];
-            }
-            saveCompanyField(inp.dataset.id, inp.dataset.field, inp.value, inp);
-        });
-    });
-
-    tbody.querySelectorAll(".comp-delete-btn").forEach(function(btn) {
-        btn.addEventListener("click", function() {
-            if (!confirm("حذف الشركة دي نهائياً؟")) return;
-            if (db) {
-                db.collection("company_data").doc(btn.dataset.id).delete()
-                    .then(function() { showToast("تم الحذف"); loadCompanyData(); }).catch(console.error);
-            }
-        });
-    });
-}
-
-// تحديد عرض الخلية تلقائياً على حسب عدد حروف القيمة المكتوبة (بحد أدنى معقول)
-function autoSizeCompanyInput(inp) {
-    const len = (inp.value || "").length;
-    inp.style.width = Math.max(len + 2, 6) + "ch";
-}
-
-// =====================================================================
-// تراجع / إعادة للتعديلات في جدول بيانات الشركات (خاص بالجلسة الحالية)
-// =====================================================================
-window.companyUndoStack = [];
-window.companyRedoStack = [];
-
-function findCompanyInput(id, field) {
-    const inputs = document.querySelectorAll('.companies-data-table td input[data-field]');
-    for (let i = 0; i < inputs.length; i++) {
-        if (inputs[i].dataset.id === id && inputs[i].dataset.field === field) return inputs[i];
-    }
-    return null;
-}
-
-window.undoCompanyEdit = function() {
-    if (!window.companyUndoStack.length) { showToast("لا يوجد تعديل للتراجع عنه"); return; }
-    const change = window.companyUndoStack.pop();
-    const inp = findCompanyInput(change.id, change.field);
-    if (inp) { inp.value = change.oldValue; inp.dataset.prevValue = change.oldValue; autoSizeCompanyInput(inp); }
-    window.companyRedoStack.push(change);
-    saveCompanyField(change.id, change.field, change.oldValue, inp);
-};
-
-window.redoCompanyEdit = function() {
-    if (!window.companyRedoStack.length) { showToast("لا يوجد تعديل لإعادته"); return; }
-    const change = window.companyRedoStack.pop();
-    const inp = findCompanyInput(change.id, change.field);
-    if (inp) { inp.value = change.newValue; inp.dataset.prevValue = change.newValue; autoSizeCompanyInput(inp); }
-    window.companyUndoStack.push(change);
-    saveCompanyField(change.id, change.field, change.newValue, inp);
-};
-
-function saveCompanyField(id, field, value, el) {
-    if (db) {
-        db.collection("company_data").doc(id).set({[field]: value}, {merge:true})
-            .then(function() { showToast(); flashEl(el); })
-            .catch(function(e) { console.error(e); showToast("خطأ في الحفظ"); });
-    }
-}
-window.addCompanyData = function() {
-    const get = id => document.getElementById(id).value.trim();
-    const name = get("nc_name");
-    if (!name) { alert("اسم الشركة مطلوب"); return; }
-    const row = {
-        name, type: get("nc_type"), system: get("nc_system"), email: get("nc_email"), emailpass: get("nc_emailpass"),
-        sysuser: get("nc_sysuser"), syspass: get("nc_syspass"), natid: get("nc_natid"), regno: get("nc_regno"),
-        einvuser: get("nc_einvuser"), einvpass: get("nc_einvpass"), piencode: get("nc_piencode"), salaries: get("nc_salaries"),
-        acccode: get("nc_acccode"), accpass: get("nc_accpass"), notes: get("nc_notes"), createdAt: Date.now()
-    };
-    if (db) {
-        db.collection("company_data").add(row).then(function() {
-            document.getElementById("addCompanyRow").querySelectorAll("input").forEach(i=>i.value="");
-            showToast("تمت الإضافة بنجاح"); loadCompanyData();
-        }).catch(console.error);
-    }
-};
-function esc(v) { return (v||"").replace(/"/g,"&quot;"); }
-
-// =====================================================================
-// === صفحة إدارة المستخدمين وتعديلات الصلاحيات ===
-// =====================================================================
-document.addEventListener("DOMContentLoaded", function() {
-    if (currentPage !== "admin-users.html") return;
-    initFirebase();
-    setupLogout("logoutBtn");
-    loadUsers();
-});
-
-function loadUsers() {
-    const grid = document.getElementById("usersGrid");
-    if (!grid) return;
-
-    let html = `<div class="user-card main-account">
-        <div class="user-icon"><i class="fa-solid fa-crown"></i></div>
-        <div class="user-info">
-            <strong>${ADMIN_CREDENTIALS.username}</strong>
-            <span>الحساب الرئيسي (لا يمكن حذفه)</span>
+    <div class="dashboard-header">
+        <div class="header-title">
+            <img src="4.png" alt="لوجو">
+            <span>لوحة تحكم الإقرارات الضريبية</span>
         </div>
-    </div>`;
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="admin-home.html" class="logout-btn" style="text-decoration:none;">
+                <i class="fa-solid fa-house"></i> الرئيسية
+            </a>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+            </button>
+        </div>
+    </div>
 
-    if (db) {
-        db.collection("admin_users").orderBy("createdAt","asc").get()
-            .then(function(snap) {
-                snap.forEach(function(doc) {
-                    const u = doc.data();
-                    let permsHTML = (u.permissions || []).map(p => `<span style="background:#eee;color:#333;font-size:10px;padding:2px 5px;border-radius:4px;margin-left:4px;">${esc(p)}</span>`).join("");
-                    html += `<div class="user-card">
-                        <div class="user-icon"><i class="fa-solid fa-user"></i></div>
-                        <div class="user-info">
-                            <strong>${esc(u.username)}</strong>
-                            <span>••••••••</span>
-                            <div style="margin-top:5px;">${permsHTML}</div>
-                        </div>
-                        <button class="delete-user-btn" data-id="${doc.id}" title="حذف">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>`;
-                });
-                grid.innerHTML = html;
-                grid.querySelectorAll(".delete-user-btn").forEach(function(btn) {
-                    btn.addEventListener("click", function() {
-                        if (!confirm("حذف هذا المستخدم؟")) return;
-                        db.collection("admin_users").doc(btn.dataset.id).delete()
-                            .then(function() { showToast("تم الحذف"); loadUsers(); }).catch(console.error);
-                    });
-                });
-            }).catch(function(e) {
-                console.error(e);
-                grid.innerHTML = html + '<div style="padding:20px;color:red;">تعذر تحميل المستخدمين</div>';
-            });
-    } else {
-        grid.innerHTML = html + '<div style="padding:20px;color:#888;">Firebase غير متصل</div>';
-    }
-}
+    <div class="admin-tabs">
+        <button class="admin-tab-btn active" data-tab="vat">
+            <i class="fa-solid fa-receipt"></i> إقرار القيمة المضافة
+        </button>
+        <button class="admin-tab-btn" data-tab="withholding">
+            <i class="fa-solid fa-file-invoice"></i> إقرار الخصم والإضافة
+        </button>
+        <button class="admin-tab-btn" data-tab="payroll">
+            <i class="fa-solid fa-money-check-dollar"></i> إقرار المرتبات
+        </button>
+        <button class="admin-tab-btn" data-tab="income">
+            <i class="fa-solid fa-sack-dollar"></i> إقرار الدخل السنوي
+        </button>
+    </div>
 
-window.addUser = async function() {
-    const username = document.getElementById("newUsername").value.trim();
-    const password = document.getElementById("newPassword").value.trim();
-    
-    const checkboxes = document.querySelectorAll('input[name="permission"]:checked');
-    const permissions = Array.from(checkboxes).map(cb => cb.value);
+    <div class="admin-panel active" id="panel-vat">
+        <div class="panel-toolbar">
+            <h2>إقرار القيمة المضافة (شهري)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="vat" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
 
-    if (!username || !password) { alert("يجب إدخال اسم المستخدم وكلمة المرور"); return; }
-    if (username === ADMIN_CREDENTIALS.username) { alert("اسم المستخدم محجوز"); return; }
-    if (!db) { showToast("Firebase غير متصل"); return; }
+        <div class="tax-converter-box" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 15px; color: #0a192f; display: flex; align-items: center; gap: 10px; font-size: 1.2rem;">
+                <i class="fa-solid fa-file-csv" style="color: #d4af37; font-size: 1.4rem;"></i>
+                <span>منظومة تحويل فواتير القيمة المضافة (Excel إلى CSV المعتمد)</span>
+            </h3>
+            
+            <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 160px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">نوع المنظومة:</label>
+                    <select id="systemType" style="width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; background-color: #f8fafc; font-weight: 600; outline: none;">
+                        <option value="new">منظومة جديدة</option>
+                        <option value="old">منظومة قديمة</option>
+                    </select>
+                </div>
 
-    const passwordHash = await hashPassword(password);
+                <div style="flex: 1; min-width: 180px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">1. نوع المعاملة الدفترية:</label>
+                    <select id="taxInvoiceType" style="width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; background-color: #f8fafc; font-weight: 600; outline: none;">
+                        <option value="sales">شيت مبيعات المنظومة (Sales)</option>
+                        <option value="purchases">شيت مشتريات المنظومة (Purchases)</option>
+                    </select>
+                </div>
+                
+                <div style="flex: 2; min-width: 280px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">2. اختر ملف الإكسل المستخرج:</label>
+                    <input type="file" id="taxExcelFile" accept=".xlsx, .xls, .csv" style="width: 100%; padding: 8px; border: 2px dashed #cbd5e1; border-radius: 8px; background: #fff; cursor: pointer;">
+                </div>
+                
+                <div style="flex: 1; min-width: 160px;">
+                    <button onclick="processAndDownloadTaxCSV()" style="width: 100%; background: #0a192f; color: #d4af37; border: none; padding: 12px 20px; border-radius: 8px; font-family: inherit; font-weight: 800; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span>تحويل وتصدير CSV</span>
+                    </button>
+                </div>
+            </div>
+            <div id="taxConverterStatus" style="margin-top: 12px; font-weight: 700; font-size: 0.95rem; min-height: 20px;"></div>
+        </div>
 
-    db.collection("admin_users").add({
-        username, 
-        passwordHash, 
-        permissions, 
-        createdAt: Date.now()
-    }).then(function() {
-        document.getElementById("newUsername").value = "";
-        document.getElementById("newPassword").value = "";
-        document.querySelectorAll('input[name="permission"]').forEach(cb => cb.checked = false);
-        showToast("تمت إضافة المستخدم");
-        loadUsers();
-    }).catch(console.error);
-};
+        <div class="decl-add-row">
+            <input type="text" id="addDeclInput-vat" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('vat')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>م</th><th>اسم الشركة</th><th>اسم الشخص المسئول</th><th>الشهر</th><th>السنة</th><th>حذف</th></tr>
+                </thead>
+                <tbody id="tbody-vat"></tbody>
+            </table>
+        </div>
+    </div>
 
-window.verifyLogin = async function(username, password, callback) {
-    const passwordHash = await hashPassword(password);
+    <div class="admin-panel" id="panel-withholding">
+        <div class="panel-toolbar">
+            <h2>إقرار الخصم والإضافة (شهري)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="withholding" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="decl-add-row" style="display:none;">
+            <input type="text" id="addDeclInput-withholding" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('withholding')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>م</th><th>اسم الشركة</th><th>اسم الشخص المسئول</th><th>الشهر</th><th>السنة</th></tr>
+                </thead>
+                <tbody id="tbody-withholding"></tbody>
+            </table>
+        </div>
+    </div>
 
-    if (username === ADMIN_CREDENTIALS.username && passwordHash === ADMIN_CREDENTIALS.passwordHash) {
-        callback({ role: "admin", permissions: [] }); 
+    <div class="admin-panel" id="panel-payroll">
+        <div class="panel-toolbar">
+            <h2>إقرار المرتبات (شهري)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="payroll" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+
+        <div class="tax-converter-box" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 15px; color: #0a192f; display: flex; align-items: center; gap: 10px; font-size: 1.2rem;">
+                <i class="fa-solid fa-money-check-dollar" style="color: #27ae60; font-size: 1.4rem;"></i>
+                <span>منظومة تحويل إقرار المرتبات (Excel إلى CSV المعتمد)</span>
+            </h3>
+            
+            <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 2; min-width: 280px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #4a5568; font-size: 0.9rem;">اختر ملف الإكسل (شيت الموظفين):</label>
+                    <input type="file" id="payrollExcelFile" accept=".xlsx, .xls, .csv" style="width: 100%; padding: 8px; border: 2px dashed #cbd5e1; border-radius: 8px; background: #fff; cursor: pointer;">
+                </div>
+                
+                <div style="flex: 1; min-width: 160px;">
+                    <button onclick="processAndDownloadPayrollCSV()" style="width: 100%; background: #0a192f; color: #27ae60; border: none; padding: 12px 20px; border-radius: 8px; font-family: inherit; font-weight: 800; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span>تحويل وتصدير CSV</span>
+                    </button>
+                </div>
+            </div>
+            <div id="payrollConverterStatus" style="margin-top: 12px; font-weight: 700; font-size: 0.95rem; min-height: 20px;"></div>
+        </div>
+
+        <div class="decl-add-row" style="display:none;">
+            <input type="text" id="addDeclInput-payroll" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('payroll')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>م</th><th>اسم الشركة</th><th>اسم الشخص المسئول</th><th>الشهر</th><th>السنة</th></tr>
+                </thead>
+                <tbody id="tbody-payroll"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="admin-panel" id="panel-income">
+        <div class="panel-toolbar">
+            <h2>إقرار الدخل (سنوي)</h2>
+            <div class="search-wrap">
+                <input type="text" class="company-search" data-panel="income" placeholder="بحث باسم الشركة...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </div>
+        <div class="decl-add-row" style="display:none;">
+            <input type="text" id="addDeclInput-income" placeholder="اسم الشركة الجديدة">
+            <button onclick="addDeclCompany('income')"><i class="fa-solid fa-plus"></i> إضافة شركة</button>
+        </div>
+        <div class="table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>م</th><th>اسم الشركة</th><th>اسم الشخص المسئول</th><th>السنة</th><th>حذف</th></tr>
+                </thead>
+                <tbody id="tbody-income"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div class="save-toast" id="saveToast"><i class="fa-solid fa-circle-check"></i> <span>تم الحفظ بنجاح</span></div>
+
+<script src="admin.js"></script>
+
+<script>
+// =====================================================================
+// سكربت تحويل إقرار المرتبات 
+// =====================================================================
+function processAndDownloadPayrollCSV() {
+    const fileInput = document.getElementById("payrollExcelFile");
+    const statusEl = document.getElementById("payrollConverterStatus");
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        statusEl.style.color = "#ef4444";
+        statusEl.textContent = "يرجى اختيار ملف الإكسل أولاً.";
         return;
     }
-    if (!db) { callback(false, "قاعدة البيانات غير متصلة"); return; }
-    
-    db.collection("admin_users")
-        .where("username", "==", username)
-        .where("passwordHash", "==", passwordHash)
-        .get()
-        .then(function(snap) { 
-            if(!snap.empty) {
-                callback({ role: "user", permissions: snap.docs[0].data().permissions || [] });
-            } else {
-                callback(false, "اسم المستخدم أو كلمة المرور غير صحيحة");
+
+    const selectedFile = fileInput.files[0];
+    const fileReader = new FileReader();
+
+    fileReader.onload = function(event) {
+        try {
+            const binaryData = new Uint8Array(event.target.result);
+            const loadedWorkbook = XLSX.read(binaryData, { type: 'array' });
+            const currentSheetName = loadedWorkbook.SheetNames[0];
+            const currentWorksheet = loadedWorkbook.Sheets[currentSheetName];
+            const importedRows = XLSX.utils.sheet_to_json(currentWorksheet, { raw: false, defval: "" });
+
+            if(importedRows.length === 0) {
+                statusEl.style.color = "#ef4444";
+                statusEl.textContent = "الملف المرفوع فارغ!";
+                return;
             }
-        })
-        .catch(function(error) { 
-            console.error("Firebase Login Error: ", error);
-            callback(false, "حدث خطأ أثناء الاتصال بقاعدة البيانات. (راجع الـ Console)"); 
-        });
-};
 
-// =====================================================================
-// === باقي الأكواد القديمة المتعلقة بالعملاء (admin-clients.html) ===
-// =====================================================================
-const CLIENTS_SEED = [ {nameAr: "لاكوزين", nameEn: "La Cuisine"} ];
-function seedClientsAdmin(callback) {
-    if (!db) return; const batch = db.batch();
-    CLIENTS_SEED.forEach(function(c, i) {
-        const ref = db.collection("clients").doc();
-        batch.set(ref, {...c, createdAt: Date.now() + i});
-    });
-    batch.commit().then(callback).catch(console.error);
-}
-document.addEventListener("DOMContentLoaded", function() {
-    if (currentPage !== "admin-clients.html") return;
-    initFirebase(); setupLogout("logoutBtn");
-    document.getElementById("addClientForm").addEventListener("submit", function(e) {
-        e.preventDefault();
-        const nameAr = document.getElementById("clientNameAr").value.trim();
-        const nameEn = document.getElementById("clientNameEn").value.trim();
-        if (!nameAr) return;
-        const client = {nameAr, nameEn: nameEn||nameAr, createdAt: Date.now()};
-        if (db) {
-            db.collection("clients").add(client)
-                .then(function() { showToast("تمت الإضافة"); this.reset(); loadClientsAdmin(); }.bind(this))
-        }
-    });
-    loadClientsAdmin();
-});
+            const requiredCols = [
+                'كود الموظف', 'اسم الموظف', 'الجنسية', 'الرقم القومي', 'رقم التليفون', 
+                'الوظيفة', 'اسم الجهة/الفرع', 'المعاملة الضريبية', 'مدة العمل', 
+                'الحالة التأمينية', 'الأجر الشامل', 'المرتب الأساسي', 'مكافات وحوافز/أجر إضافي/منح'
+            ];
 
-function loadClientsAdmin() {
-    const tbody = document.getElementById("clientsTableBody");
-    const countEl = document.getElementById("clientsCount");
-    if (!tbody) return;
-    if (db) {
-        db.collection("clients").orderBy("createdAt","asc").get().then(function(snap) {
-            if (snap.empty) { seedClientsAdmin(loadClientsAdmin); return; }
-            let html = ""; let i = 0;
-            snap.forEach(function(doc) {
-                i++; const d=doc.data();
-                html += `<tr><td>${i}</td><td class="company-name">${d.nameAr}</td><td>${d.nameEn||""}</td>
-                    <td><button class="delete-client-btn" data-id="${doc.id}"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+            const uploadedCols = Object.keys(importedRows[0]).map(k => k.trim());
+            let missingCols = [];
+            
+            requiredCols.forEach(col => {
+                if (!uploadedCols.includes(col)) missingCols.push(col);
             });
-            tbody.innerHTML = html;
-            if (countEl) countEl.textContent = i+" شركة";
-            tbody.querySelectorAll(".delete-client-btn").forEach(function(btn) {
-                btn.addEventListener("click", function() {
-                    if (!confirm("حذف هذا العميل؟")) return;
-                    db.collection("clients").doc(btn.dataset.id).delete()
-                        .then(function() { showToast("تم الحذف"); loadClientsAdmin(); });
-                });
-            });
-        });
-    }
-}
 
-// =====================================================================
-// === صفحة عملائنا العامة (clients.html) - عرض الشركات في الماركيه ===
-// =====================================================================
-document.addEventListener("DOMContentLoaded", function() {
-    if (currentPage !== "clients.html") return;
-    initFirebase();
-    loadPublicClients();
-});
+            if (missingCols.length > 0) {
+                statusEl.style.color = "#ef4444";
+                statusEl.textContent = `خطأ: العمود التالي غير موجود في الشيت: (${missingCols.join(" ، ")})`;
+                return;
+            }
 
-function loadPublicClients() {
-    const container = document.getElementById("clientsMarquee");
-    if (!container) return;
+            const payrollArabicHeaders = [
+                "مسلسل", "كود الموظف", "اسم الموظف", "الجنسية", "الرقم القومي", "رقم جواز السفر", "رقم جواز السفر الجديد", "رقم التليفون", "حالة تصريح العمل لغير المصريين", "رقم تصريح العمل", "الوظيفة", "اسم الجهة/الفرع", "المعاملة الضريبية", "رقم التسجيل الضريبي لجهة العمل الأصلية", "مدة العمل", "الحالة التأمينية", "الرقم التأمينى", "تاريخ الالتحاق بالتأمينات", "قسط مدة سابقة", "تاريخ نهاية الخدمة", "تاريخ انتهاء الاشتراك من التأمينات الاجتماعية", "الأجر الشامل", "بدلات غير خاضعة تأمينيأ", "الأجر التأميني", "حالة التأمين  الصحي الشامل", "عدد الزوجات الغير عاملات (التأمين الصحي الشامل)", "عدد المعالين (التأمين الصحي  الشامل)", "المرتب الأساسي", "مكافات وحوافز/أجر إضافي/منح", "علاوات خاصة معفاة", "علاوات خاصة خاضعة", "عمولات", "نصيب العامل في الأرباح", "مقابل الخدمة", "البقشيش", "مرتبات ومكافات رؤساء اعضاء مجلس الادارة (مقابل العمل الإداري)", "المقابل النقدى لرصيد الاجازات أثناء الخدمة", "مكافأة نهاية الخدمة الخاضعة", "مبالغ منصرفة بقوانين خاصة (الجزء المعفي منها)", "إضافات وبدلات اخرى خاضعة", "ما تحملته المنشاة من ضريبة مرتبات", "ما تحملته المنشاة من التأمينات الاجتماعية", "مبالغ خاضعة منصرفة بصورة ربع سنوية", "مبالغ خاضعة منصرفة بصورة نصف سنوية", "مبالغ خاضعة منصرفة بصورة  سنوية", "مزايا: السيارات", "مزايا: الهواتف المحمولة", "مزايا: قروض وسلف", "مزايا: التأمين على الحياة (حصة صاحب العمل)", "مزايا: اسهم الشركة داخل مصر او خارج مصر", "مزايا أخرى", "اجمالى الاستحقاقات", "حصة العامل فى التأمينات الإجتماعية  والمعاشات", "حصة العامل المستقطعة في التأمين الصحي الشامل", "مبالغ معفاة  بقوانين خاصة", "علاوات خاصة معفاة", "العلاوة الاجتماعية/الإضافية لجهات حكومية و ق.ع. وغير خاضع للخدمة المدنية", "الاعفاء الشخصى", "اقساط (مدة سابقة/اعارة/اعتبارية)", "نصيب العامل في الأرباح", "اشتراكات العاملين فى صناديق التامين التى تنشاء طبقا لاحكام ق 54 لسنة 75", "اشتراكات العاملين فى صناديق التامين التى تنشأ طبقا لاحكام ق 155 لسنة 2024", "أقساط التأمين على حياة الممول لمصلحتة ومصلحةزوجته وأولاده القصر", "أقساط التأمين الصحي", "أقساط تأمين لإستحقاق معاش", "إجمالي اشتراكات صناديق التأمين", "اجمالى الاستقطاعات", "صافى الدخل (وعاء الفتره)", "الوعاء السنوى", "الضريبة  المستحقة عن الفترة للعمالة الاصلية", "الضريبة  المستحقة عن الفترة للعمالة المدرجه بنموذج 3 مرتبات", "الضريبة المستحقة عن الفترة للعمالة المدرجه بنموذج 2 مرتبات", "اجمالى الضريبة المستحقة عن جميع انواع العمالة", "الضريبة المحتسبة عن الفترة", "الضريبة المحتسبة عن الفترات السابقة للمعاملات الضريبية 1 و4 و5 و6 و7", "الضريبة المحتسبة عن الفترة للمعاملات الضريبية 1 و4 و5 و6 و7", "الضريبة المحتسبة عن الفترات السابقة للمعاملة ضريبية 2", "الضريبة المحتسبة عن الفترة للمعاملة ضريبية 2", "الضريبة المحتسبة عن الفترات السابقة للمعاملة ضريبية 3", "الضريبة المحتسبة عن الفترة للمعاملة ضريبية 3", "صافي الأجر النهائي", "مشاركه اجتماعيه استقطاع لصندوق الشهداء وما فى حكمها", "دعم ذوي الهمم (قانون 200 لسنة 2020)", "اضافات: قيمة السلفة/قروض", "اضافات: قيمة مكافأة نهاية الخدمة الغير خاضعة", "اضافات: قيمة رصيد الأجازات الغير خاضعة", "اضافات أخرى", "استقطاعات: نفقة", "استقطاعات: قيمة قسط السلفة/القرض", "استقطاعات: اشتراكات نقابات/أندية", "استقطاعات: جزاءات", "استقطاعات: قيمة قسط بوليصة التأمين على الحياة", "استقطاعات أخرى", "حصة الشركة في التأمينات الاجتماعية", "حصة الشركة في التأمين الصحي الشامل", "المساهمة فى صندوق الشهداء", "الدمغات", "المبالغ المحولة فعلياً"
+            ];
+            
+            const payrollEnglishHeaders = [
+                "EI005", "EI010", "EI015", "EI020", "EI025", "EI026", "EI027", "EI030", "EI035", "EI040", "EI045", "EI055", "EI060", "EI065", "EI130", "EI070", "EI075", "EI080", "EI085", "EI090", "EI095", "EI100", "EI105", "EI110", "EI115", "EI120", "EI125", "DTE160", "DTE170", "DTE180", "DTE175", "DTE190", "DTE230", "DTE235", "DTE260", "DTE240", "DTE245", "DTE250", "DTE255", "DTE265", "DTE270", "DTE275", "DTE280", "DTE285", "DTE290", "DTE200", "DTE205", "DTE210", "DTE215", "DTE220", "DTE225", "DTE295", "DAE405", "DAE410", "DAE415", "DAE420", "DAE425", "DAE430", "DAE435", "DAE440", "DAE450", "DAE451", "DAE455", "DAE460", "DAE465", "DAE470", "DAE475", "TC505", "TC510", "TC515", "TC520", "TC525", "TC530", "END705", "TC535", "TC540", "TC545", "TC550", "TC555", "TC560", "TC565", "NAD610", "CLD825", "NAD615", "NAD620", "NAD625", "NAD630", "NAD635", "NAD640", "NAD645", "NAD650", "NAD655", "NAD660", "CLD805", "CLD810", "CLD815", "CLD820", "NAD665"
+            ];
 
-    function renderClients(list) {
-        if (!list.length) {
-            container.innerHTML = '<div style="text-align:center;padding:20px;color:#fff;">سيتم إضافة عملائنا قريباً</div>';
-            return;
-        }
+            let builtCSVRows = [];
+            builtCSVRows.push(payrollArabicHeaders.join(","));
+            builtCSVRows.push(payrollEnglishHeaders.join(","));
 
-        function buildGroup() {
-            const group = document.createElement("div");
-            group.className = "marquee-group";
-            list.forEach(function(c) {
-                const card = document.createElement("div");
-                card.className = "service-card client-card";
+            importedRows.forEach((row, index) => {
+                const getVal = (colName) => {
+                    const exactKey = Object.keys(row).find(k => k.trim() === colName);
+                    return exactKey ? String(row[exactKey]).trim() : "";
+                };
 
-                const title = document.createElement("div");
-                title.className = "client-title";
-
-                const arEl = document.createElement("h3");
-                arEl.style.margin = "0";
-                arEl.textContent = c.nameAr || "";
-                title.appendChild(arEl);
-
-                if (c.nameEn) {
-                    const sep = document.createElement("span");
-                    sep.className = "separator";
-                    sep.textContent = "|";
-                    title.appendChild(sep);
-
-                    const enEl = document.createElement("span");
-                    enEl.className = "client-en";
-                    enEl.textContent = c.nameEn;
-                    title.appendChild(enEl);
+                let natId = getVal('الرقم القومي').replace(/\D/g, "");
+                
+                let phone = getVal('رقم التليفون').replace(/\D/g, "");
+                if (phone.length === 10 && phone.startsWith("1")) {
+                    phone = "0" + phone;
                 }
 
-                card.appendChild(title);
-                group.appendChild(card);
+                let insDateRaw = getVal('تاريخ الالتحاق بالتأمينات');
+                let insDateFormatted = "0";
+                if (insDateRaw && insDateRaw !== "0" && insDateRaw.toLowerCase() !== "nan") {
+                    let parts = insDateRaw.split(/[\/\-\.]/);
+                    if (parts.length === 3) {
+                        let d = parts[0].padStart(2, '0');
+                        let m = parts[1].padStart(2, '0');
+                        let y = parts[2];
+                        if (y.length === 2) y = "20" + y;
+                        insDateFormatted = `${d}${m}${y}`;
+                    } else {
+                        let digitsOnly = insDateRaw.replace(/\D/g, "");
+                        if(digitsOnly.length === 8) insDateFormatted = digitsOnly;
+                        else insDateFormatted = insDateRaw;
+                    }
+                }
+
+                let rowData = new Array(98).fill("0");
+
+                rowData[0] = index + 1; 
+                rowData[1] = getVal('كود الموظف');
+                rowData[2] = getVal('اسم الموظف').replace(/,/g, " ");
+                rowData[3] = getVal('الجنسية');
+                rowData[4] = natId;
+                rowData[5] = ""; 
+                rowData[6] = ""; 
+                rowData[7] = phone;
+                rowData[8] = ""; 
+                rowData[9] = ""; 
+                rowData[10] = getVal('الوظيفة').replace(/,/g, " ");
+                rowData[11] = getVal('اسم الجهة/الفرع').replace(/,/g, " ");
+                rowData[12] = getVal('المعاملة الضريبية');
+                rowData[13] = ""; 
+                rowData[14] = getVal('مدة العمل');
+                rowData[15] = getVal('الحالة التأمينية');
+                rowData[16] = getVal('الرقم التأمينى') || "0"; 
+                rowData[17] = insDateFormatted;
+                rowData[21] = getVal('الأجر الشامل') || "0";
+                rowData[27] = getVal('المرتب الأساسي') || "0";
+                rowData[28] = getVal('مكافات وحوافز/أجر إضافي/منح') || "0";
+
+                for (let i = 0; i < 98; i++) {
+                    if (rowData[i] === undefined || rowData[i] === null || rowData[i] === "") {
+                        if ([5, 6, 8, 9, 13].includes(i)) {
+                            rowData[i] = ""; 
+                        } else {
+                            rowData[i] = "0"; 
+                        }
+                    } else {
+                        rowData[i] = String(rowData[i]).replace(/,/g, " "); 
+                    }
+                }
+
+                builtCSVRows.push(rowData.join(","));
             });
-            return group;
+
+            const blob = new Blob(["\uFEFF" + builtCSVRows.join("\r\n")], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Export_Payroll_${new Date().getTime()}.csv`;
+            link.click();
+            
+            statusEl.style.color = "green";
+            statusEl.textContent = "تم استخراج ملف إقرار المرتبات بنجاح!";
+        } catch (err) { 
+            console.error(err); 
+            statusEl.style.color = "#ef4444"; 
+            statusEl.textContent = "حدث خطأ أثناء معالجة الملف. يرجى التأكد من التنسيق."; 
         }
-
-        // مجموعتين متطابقتين عشان الحركة (الماركيه) تبقى متصلة بدون فجوة
-        container.innerHTML = "";
-        container.appendChild(buildGroup());
-        container.appendChild(buildGroup());
-    }
-
-    if (db) {
-        db.collection("clients").orderBy("createdAt", "asc").get().then(function(snap) {
-            const list = [];
-            snap.forEach(function(doc) { list.push(doc.data()); });
-            renderClients(list);
-        }).catch(function(e) {
-            console.error(e);
-            container.innerHTML = '<div style="text-align:center;padding:20px;color:#fff;">تعذر تحميل بيانات العملاء</div>';
-        });
-    } else {
-        container.innerHTML = '<div style="text-align:center;padding:20px;color:#fff;">تعذر الاتصال بقاعدة البيانات</div>';
-    }
+    };
+    fileReader.readAsArrayBuffer(selectedFile);
 }
+
+// =====================================================================
+// سكربت تحويل إقرار القيمة المضافة (القديم والجديد) المتوافق مع شيتات نسر العرب
+// =====================================================================
+function processAndDownloadTaxCSV() {
+    const fileInput = document.getElementById("taxExcelFile");
+    const mode = document.getElementById("taxInvoiceType").value;
+    const systemType = document.getElementById("systemType").value;
+    const statusEl = document.getElementById("taxConverterStatus");
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        statusEl.style.color = "#ef4444";
+        statusEl.textContent = "يرجى اختيار ملف الإكسل.";
+        return;
+    }
+
+    const selectedFile = fileInput.files[0];
+    const fileReader = new FileReader();
+
+    fileReader.onload = function(event) {
+        try {
+            const binaryData = new Uint8Array(event.target.result);
+            const loadedWorkbook = XLSX.read(binaryData, { type: 'array' });
+            const currentSheetName = loadedWorkbook.SheetNames[0];
+            const currentWorksheet = loadedWorkbook.Sheets[currentSheetName];
+            const importedRows = XLSX.utils.sheet_to_json(currentWorksheet, { raw: false, defval: "" });
+
+            if (importedRows.length === 0) {
+                statusEl.style.color = "#ef4444";
+                statusEl.textContent = "الملف المرفوع فارغ!";
+                return;
+            }
+
+            let builtCSVRows = [];
+
+            if (systemType === "old") {
+                let oldSalesHeaders = ['نوع المستند (فاتورة 1/ إشعار إضافة 2/إشعار خصم 3/مستهلك نهائي محلي 5/جهة-حكومة 6/مستهلك نهائي أجنبي 7)', 'نوع الضريبة (سلع عامة 1/سلع جدول 2)', 'نوع سلع الجدول (لايوجد 0/جدول أولا 1/جدول ثانيا 2)', 'رقم الفاتورة', 'اسم العميل', 'رقم التسجيل الضريبي للعميل', 'رقم الملف الضريبي للعميل', 'العنوان', 'الرقم القومي / رقم جواز السفر', 'رقم الموبيل', 'تاريخ الفاتورة', 'إسم المنتج', 'كود المنتج', 'نوع البيان (سلعة 3/خدمة 4/تسويات 5)', 'نوع السلعة (محلي 1/صادرات 2/آلات ومعدات 5/أجزاء آلات 6/إعفاءات 7 /  سلع الجدول  مراجعة الإرشادات ) ', 'وحدة قياس المنتج', 'سعر الوحدة', 'فئة الضريبة (14%/5%)', 'كمية المنتج', 'المبلغ الصافي', 'قيمة الضريبة', 'إجمالي'];
+                let oldPurchasesHeaders = ['نوع المستند (فاتورة 1/ إشعار إضافة 2/إشعار خصم 3/إذن إفراج 4)', 'نوع الضريبة (سلع عامة 1/سلع جدول 2)', 'نوع سلع الجدول (لايوجد 0/جدول أولا 1/جدول ثانيا 2)', 'رقم الفاتورة', 'اسم المورد', 'رقم التسجيل الضريبي للعميل', 'رقم الملف الضريبي للعميل', 'العنوان', 'الرقم القومي', 'رقم الموبيل', 'تاريخ الفاتورة', 'إسم المنتج', 'كود المنتج', 'نوع البيان (محلي 1/مستورد 2/تسويات 5)', 'نوع السلعة (سلع 3/خدمات 4/آلات ومعدات 5/أجزاء آلات 6/إعفاءات 7)', 'وحدة قياس المنتج', 'سعر الوحدة', 'فئة الضريبة (14%/5%)', 'كمية المنتج', 'المبلغ الصافي', 'قيمة الضريبة', 'إجمالي'];
+                builtCSVRows.push((mode === "sales" ? oldSalesHeaders : oldPurchasesHeaders).join(","));
+            } else {
+                let newArabicHeaders = ["نوع المستند *", "نوع الضريبة *", "نوع سلع الجدول *", "رقم الفاتورة *", (mode === "sales" ? "اسم العميل *" : "اسم المورد *"), "رقم التسجيل الضريبي للعميل *", "رقم الملف الضريبي للعميل", "العنوان *", "الرقم القومي / رقم جواز السفر", "رقم الموبيل", "تاريخ الفاتورة *", "إسم المنتج *", "كود المنتج", "نوع البيان *", "نوع السلعة *", "وحدة قياس المنتج", "سعر الوحدة *", "فئة الضريبة *", "كمية المنتج *", "المبلغ الإجمالي *", "قيمة الخصم", "المبلغ الصافي *", "قيمة الضريبة *", "الإجمالي *"];
+                let newEnglishHeaders = [ (mode === "sales" ? "DOC_TYP_S" : "DOC_TYP_P"), "TAX_TYP", "TYP_SCH", "INVNUM", "CUST_NAME", "CUST_REG_NO", "CUST_FILE_NO", "ADDRESS", "ID", "PHONE", "DOC_TIN_NUM", "PROD_NAME", "PROD_CODE", (mode === "sales" ? "STAT_TYPE_S" : "STAT_TYPE_P"), (mode === "sales" ? "COMM_TYPE_S" : "COMM_TYPE_P"), "PMU", "UNITP", "TAX_CAT", "QOP", "TAMMOUNT", "DISC", "NET_AMM", "TAX_VAL", "TOTAL"];
+                builtCSVRows.push(newArabicHeaders.join(","));
+                builtCSVRows.push(newEnglishHeaders.join(","));
+            }
+
+            let anyRowHadValues = false;
+
+            importedRows.forEach(row => {
+                
+                // دالة ذكية للبحث عن أسماء الأعمدة متجاهلة المسافات واختلافات الهمزات
+                const getVal = (possibleNames) => {
+                    if (!Array.isArray(possibleNames)) possibleNames = [possibleNames];
+                    const rowKeys = Object.keys(row);
+                    
+                    for (let k of rowKeys) {
+                        let cleanKey = k.trim().replace(/أ|إ|آ/g, 'ا').replace(/ي/g, 'ى').replace(/ة/g, 'ه');
+                        for (let name of possibleNames) {
+                            let cleanName = name.trim().replace(/أ|إ|آ/g, 'ا').replace(/ي/g, 'ى').replace(/ة/g, 'ه');
+                            if (cleanKey === cleanName) {
+                                return String(row[k] || "").trim();
+                            }
+                        }
+                    }
+                    return "";
+                };
+
+                // فلترة الفواتير الملغاة
+                let docStatus = getVal(["الحالة", "حالة المستند", "Status"]).toLowerCase();
+                if (docStatus.includes("cancel") || docStatus.includes("invalid") || docStatus.includes("ملغي") || docStatus.includes("ملغاة") || docStatus.includes("مرفوض")) {
+                    return; 
+                }
+
+                // قراءة وتحديد نوع المستند والبيان
+                let originalDocType = getVal("نوع المستند");
+                let isCreditNote = (originalDocType.includes("إشعار دائن") || originalDocType.includes("اشعار دائن") || originalDocType.includes("إشعار إضافة") || originalDocType.includes("Credit"));
+                let isDebitNote = (originalDocType.includes("إشعار مدين") || originalDocType.includes("اشعار مدين") || originalDocType.includes("إشعار خصم") || originalDocType.includes("Debit"));
+                let isImport = (originalDocType.includes("استيراد") || originalDocType.includes("إستيراد"));
+
+                let codedDocType = 1; 
+                let statementType = (mode === "sales" ? 3 : 1);
+                let commodityType = (mode === "sales" ? 1 : 3);
+                
+                // التأكد من أن أي إشعار يتم تسجيله في الإقرار كـ "تسويات" (5)
+                if (isCreditNote || isDebitNote) {
+                    codedDocType = isCreditNote ? 2 : 3;  
+                    statementType = 5; 
+                } else if (isImport) {
+                    codedDocType = 4;  
+                    statementType = 2; 
+                }
+
+                // قراءة التاريخ
+                let rawDate = getVal(["تاريخ الإصدار", "تاريخ الفاتورة", "تاريخ الاصدار"]);
+                let d="", m="", y="";
+                let parts = rawDate.split(/[\/\-\.\s]/); 
+                if (parts.length >= 3) {
+                    if (parts[2].length >= 4) { y = parts[2]; m = parseInt(parts[1], 10); d = parseInt(parts[0], 10); }
+                    else { y = (parts[2].length === 2 ? "20" : "") + parts[2]; m = parseInt(parts[0], 10); d = parseInt(parts[1], 10); }
+                }
+                let formattedDate = rawDate;
+                if (d && m && y) {
+                    formattedDate = (systemType === "old") ? `${parseInt(d)}/${parseInt(m)}/${y}` : `${d}.${m}.${y}`;
+                }
+
+                // قراءة رقم الفاتورة
+                let rawInvNum = getVal(["الرقم الداخلى", "الرقم الداخلي", "رقم الفاتورة"]);
+                let cleanInvNum = rawInvNum.replace(/[^0-9]/g, '');
+                if (!cleanInvNum || cleanInvNum === "0" || cleanInvNum === "00") {
+                    cleanInvNum = "1";
+                }
+
+                // قراءة رقم التسجيل الضريبي أو الرقم القومي
+                let rawTaxId = getVal(mode === "sales" ? ["الرقم الضريبى للمشترى", "الرقم الضريبي للمشتري"] : ["الرقم الضريبى للبائع", "الرقم الضريبي للبائع"]).replace(/[^0-9]/g, '');
+                let finalTaxId = "";
+                let finalNatId = "";
+                if (rawTaxId.length === 9) {
+                    finalTaxId = rawTaxId;
+                } else if (rawTaxId.length === 14) {
+                    finalNatId = rawTaxId;
+                }
+                
+                // قراءة اسم العميل أو المورد
+                let companyName = getVal(mode === "sales" ? ["إسم المشترى", "اسم المشتري"] : ["إسم البائع", "اسم البائع"]).replace(/,/g, ' ');
+
+                // دالة لتنظيف الأرقام من الفواصل وتحويلها بشكل صحيح
+                const parseCurrency = (val) => parseFloat(String(val).replace(/,/g, '')) || 0;
+
+                // قراءة القيم المالية الاساسية
+                let netVal = parseCurrency(getVal(["قيمة الفاتورة", "قيمه الفاتوره"]));
+                let taxVal = parseCurrency(getVal(["ضريبة القيمة المضافة", "ضريبه القيمه المضافه"]));
+                let totalVal = parseCurrency(getVal(["إجمالى الفاتورة", "إجمالي الفاتورة", "اجمالى الفاتوره"]));
+                let discVal = 0; // الخصم دايماً بيتم تسجيله بـ 0 
+
+                // ===== التعديل المطلوب: لو مفيش ضريبة يبقى نوع السلعة 7 =====
+                if (taxVal === 0) {
+                    commodityType = 7;
+                }
+
+                if (netVal !== 0 || taxVal !== 0 || totalVal !== 0) anyRowHadValues = true;
+
+                if (systemType === "old") {
+                    let rowData = [
+                        codedDocType, 1, 0, 
+                        cleanInvNum,
+                        companyName,
+                        finalTaxId,
+                        "", "القاهرة",
+                        finalNatId,
+                        "", formattedDate, "متنوع", "",
+                        statementType, commodityType, "", 
+                        netVal,
+                        (mode === "sales" ? 1 : 14), 1,
+                        netVal, taxVal, totalVal
+                    ];
+                    builtCSVRows.push(rowData.join(","));
+                } else {
+                    let rowData = [
+                        codedDocType, 1, 0, 
+                        cleanInvNum, 
+                        companyName,
+                        finalTaxId,
+                        "", "القاهرة",
+                        finalNatId,
+                        "", formattedDate, "متنوع", "",
+                        statementType, commodityType, "", 
+                        netVal,
+                        (mode === "sales" ? 1 : 14), 1,
+                        netVal, discVal, netVal, taxVal, totalVal
+                    ];
+                    builtCSVRows.push(rowData.join(","));
+                }
+            });
+
+            const blob = new Blob(["\uFEFF" + builtCSVRows.join("\r\n")], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            let systemLabel = systemType === "old" ? "قديمة" : "جديدة";
+            link.download = `Export_${mode}_منظومة_${systemLabel}_${new Date().getTime()}.csv`;
+            link.click();
+            
+            statusEl.style.color = anyRowHadValues ? "green" : "#f39c12";
+            statusEl.textContent = anyRowHadValues
+                ? `تم استخراج ملف CSV (مبيعات/مشتريات) للمنظومة الـ ${systemLabel} بنجاح!`
+                : `تنبيه: تم استخراج الملف، لكن كل القيم طلعت صفر. تأكد من مطابقة أسماء الأعمدة داخل الشيت.`;
+        } catch (err) { console.error(err); statusEl.textContent = "خطأ في معالجة الملف."; }
+    };
+    fileReader.readAsArrayBuffer(selectedFile);
+}
+</script>
+</body>
+</html>
