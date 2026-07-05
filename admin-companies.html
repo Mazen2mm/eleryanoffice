@@ -15,7 +15,7 @@
 
 <div class="dashboard" style="max-width:100%;">
 
-    <div class="dashboard-header">
+    <div class="dashboard-header sticky-companies-header">
         <div class="header-title">
             <img src="4.png" alt="لوجو">
             <span>بيانات الشركات والمنظومات</span>
@@ -58,9 +58,17 @@
     <div class="admin-panel active" style="margin-top:20px; padding:0;">
         <div class="panel-toolbar" style="padding:16px 20px;">
             <h2>قائمة الشركات <span id="compDataCount" style="color:#888;font-size:0.9rem;font-weight:400;"></span></h2>
-            <div class="search-wrap">
-                <input type="text" id="compDataSearch" class="company-search" placeholder="بحث...">
-                <i class="fa-solid fa-magnifying-glass"></i>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <button type="button" onclick="undoCompanyEdit()" class="logout-btn" style="background:#eef2f7; border-color:#ccd6e0; color:#0a192f;" title="تراجع عن آخر تعديل">
+                    <i class="fa-solid fa-rotate-left"></i> تراجع
+                </button>
+                <button type="button" onclick="redoCompanyEdit()" class="logout-btn" style="background:#eef2f7; border-color:#ccd6e0; color:#0a192f;" title="إعادة آخر تعديل">
+                    <i class="fa-solid fa-rotate-right"></i> إعادة
+                </button>
+                <div class="search-wrap">
+                    <input type="text" id="compDataSearch" class="company-search" placeholder="بحث...">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
             </div>
         </div>
         <div class="companies-data-table-wrap">
