@@ -1361,7 +1361,6 @@ body.lang-en .marquee-group {
     box-shadow: 0 25px 60px rgba(0,0,0,0.45);
 }
 
-.login-wrapper h1,
 .login-wrapper p.subtitle,
 .admin-input-group label {
     color: var(--text-light);
