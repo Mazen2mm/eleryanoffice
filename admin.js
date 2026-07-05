@@ -372,7 +372,7 @@ function renderCompanyData(rows) {
         html += `<tr data-company-name="${row.name||""}">
             <td>${idx+1}</td>
             <td class="col-company"><input data-id="${row.id}" data-field="name" value="${esc(row.name)}"></td>
-            <td class="col-type"><input data-id="${row.id}" data-field="type" value="${esc(row.type)}" style="width:55px;"></td>
+            <td class="col-type"><input data-id="${row.id}" data-field="type" value="${esc(row.type)}"></td>
             <td class="col-system"><input data-id="${row.id}" data-field="system" value="${esc(row.system)}"></td>
             <td><input data-id="${row.id}" data-field="email" value="${esc(row.email)}" class="col-pass"></td>
             <td><input data-id="${row.id}" data-field="emailpass" value="${esc(row.emailpass)}" class="col-pass"></td>
@@ -382,18 +382,31 @@ function renderCompanyData(rows) {
             <td><input data-id="${row.id}" data-field="regno" value="${esc(row.regno)}" class="col-reg"></td>
             <td><input data-id="${row.id}" data-field="einvuser" value="${esc(row.einvuser)}" class="col-pass"></td>
             <td><input data-id="${row.id}" data-field="einvpass" value="${esc(row.einvpass)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="piencode" value="${esc(row.piencode)}" style="width:70px;"></td>
+            <td><input data-id="${row.id}" data-field="piencode" value="${esc(row.piencode)}"></td>
             <td><input data-id="${row.id}" data-field="salaries" value="${esc(row.salaries)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="acccode" value="${esc(row.acccode)}" style="width:70px;"></td>
+            <td><input data-id="${row.id}" data-field="acccode" value="${esc(row.acccode)}"></td>
             <td><input data-id="${row.id}" data-field="accpass" value="${esc(row.accpass)}" class="col-pass"></td>
-            <td><input data-id="${row.id}" data-field="notes" value="${esc(row.notes)}" style="min-width:100px;"></td>
+            <td><input data-id="${row.id}" data-field="notes" value="${esc(row.notes)}"></td>
             <td class="col-del"><button class="decl-delete-btn comp-delete-btn" data-id="${row.id}"><i class="fa-solid fa-trash"></i></button></td>
         </tr>`;
     });
     tbody.innerHTML = html;
 
+    // تحديد عرض كل خلية تلقائياً على حسب طول النص المكتوب فيها
     tbody.querySelectorAll("input").forEach(function(inp) {
+        autoSizeCompanyInput(inp);
+        inp.addEventListener("input", function() { autoSizeCompanyInput(inp); });
+
+        inp.addEventListener("focus", function() {
+            inp.dataset.prevValue = inp.value;
+        });
+
         inp.addEventListener("blur", function() {
+            const oldValue = inp.dataset.prevValue !== undefined ? inp.dataset.prevValue : inp.value;
+            if (oldValue !== inp.value) {
+                window.companyUndoStack.push({ id: inp.dataset.id, field: inp.dataset.field, oldValue: oldValue, newValue: inp.value });
+                window.companyRedoStack = [];
+            }
             saveCompanyField(inp.dataset.id, inp.dataset.field, inp.value, inp);
         });
     });
@@ -408,6 +421,45 @@ function renderCompanyData(rows) {
         });
     });
 }
+
+// تحديد عرض الخلية تلقائياً على حسب عدد حروف القيمة المكتوبة (بحد أدنى معقول)
+function autoSizeCompanyInput(inp) {
+    const len = (inp.value || "").length;
+    inp.style.width = Math.max(len + 2, 6) + "ch";
+}
+
+// =====================================================================
+// تراجع / إعادة للتعديلات في جدول بيانات الشركات (خاص بالجلسة الحالية)
+// =====================================================================
+window.companyUndoStack = [];
+window.companyRedoStack = [];
+
+function findCompanyInput(id, field) {
+    const inputs = document.querySelectorAll('.companies-data-table td input[data-field]');
+    for (let i = 0; i < inputs.length; i++) {
+        if (inputs[i].dataset.id === id && inputs[i].dataset.field === field) return inputs[i];
+    }
+    return null;
+}
+
+window.undoCompanyEdit = function() {
+    if (!window.companyUndoStack.length) { showToast("لا يوجد تعديل للتراجع عنه"); return; }
+    const change = window.companyUndoStack.pop();
+    const inp = findCompanyInput(change.id, change.field);
+    if (inp) { inp.value = change.oldValue; inp.dataset.prevValue = change.oldValue; autoSizeCompanyInput(inp); }
+    window.companyRedoStack.push(change);
+    saveCompanyField(change.id, change.field, change.oldValue, inp);
+};
+
+window.redoCompanyEdit = function() {
+    if (!window.companyRedoStack.length) { showToast("لا يوجد تعديل لإعادته"); return; }
+    const change = window.companyRedoStack.pop();
+    const inp = findCompanyInput(change.id, change.field);
+    if (inp) { inp.value = change.newValue; inp.dataset.prevValue = change.newValue; autoSizeCompanyInput(inp); }
+    window.companyUndoStack.push(change);
+    saveCompanyField(change.id, change.field, change.newValue, inp);
+};
+
 function saveCompanyField(id, field, value, el) {
     if (db) {
         db.collection("company_data").doc(id).set({[field]: value}, {merge:true})
@@ -618,17 +670,34 @@ function loadPublicClients() {
             return;
         }
 
-        const currentLang = localStorage.getItem("eleryan_site_lang") || "ar";
-
         function buildGroup() {
             const group = document.createElement("div");
             group.className = "marquee-group";
             list.forEach(function(c) {
                 const card = document.createElement("div");
-                card.className = "client-card";
-                card.dataset.en = c.nameEn || c.nameAr; // للترجمة عند تبديل اللغة
-                card.dataset.ar = c.nameAr;
-                card.textContent = currentLang === "en" ? (c.nameEn || c.nameAr) : c.nameAr;
+                card.className = "service-card client-card";
+
+                const title = document.createElement("div");
+                title.className = "client-title";
+
+                const arEl = document.createElement("h3");
+                arEl.style.margin = "0";
+                arEl.textContent = c.nameAr || "";
+                title.appendChild(arEl);
+
+                if (c.nameEn) {
+                    const sep = document.createElement("span");
+                    sep.className = "separator";
+                    sep.textContent = "|";
+                    title.appendChild(sep);
+
+                    const enEl = document.createElement("span");
+                    enEl.className = "client-en";
+                    enEl.textContent = c.nameEn;
+                    title.appendChild(enEl);
+                }
+
+                card.appendChild(title);
                 group.appendChild(card);
             });
             return group;
