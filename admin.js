@@ -1,10 +1,19 @@
 // =====================================================================
 // الحساب الرئيسي الثابت (لا يُحذف أبداً)
+// ملحوظة: كلمة المرور مخزنة هنا كـ SHA-256 hash مش نص صريح.
 // =====================================================================
 const ADMIN_CREDENTIALS = {
     username: "eleryanofficeteam",
-    password: "123456789"
+    passwordHash: "15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225"
 };
+
+// دالة تشفير كلمة المرور بطريقة SHA-256 (one-way hash)
+// أي كلمة مرور بتتحفظ أو تتقارن بتعدي على الدالة دي الأول
+async function hashPassword(password) {
+    const enc = new TextEncoder().encode(password);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 // =====================================================================
 // Firebase Config
@@ -452,12 +461,12 @@ function loadUsers() {
             .then(function(snap) {
                 snap.forEach(function(doc) {
                     const u = doc.data();
-                    let permsHTML = (u.permissions || []).map(p => `<span style="background:#eee;color:#333;font-size:10px;padding:2px 5px;border-radius:4px;margin-left:4px;">${p}</span>`).join("");
+                    let permsHTML = (u.permissions || []).map(p => `<span style="background:#eee;color:#333;font-size:10px;padding:2px 5px;border-radius:4px;margin-left:4px;">${esc(p)}</span>`).join("");
                     html += `<div class="user-card">
                         <div class="user-icon"><i class="fa-solid fa-user"></i></div>
                         <div class="user-info">
-                            <strong>${u.username}</strong>
-                            <span>${u.password}</span>
+                            <strong>${esc(u.username)}</strong>
+                            <span>••••••••</span>
                             <div style="margin-top:5px;">${permsHTML}</div>
                         </div>
                         <button class="delete-user-btn" data-id="${doc.id}" title="حذف">
@@ -482,7 +491,7 @@ function loadUsers() {
     }
 }
 
-window.addUser = function() {
+window.addUser = async function() {
     const username = document.getElementById("newUsername").value.trim();
     const password = document.getElementById("newPassword").value.trim();
     
@@ -493,9 +502,11 @@ window.addUser = function() {
     if (username === ADMIN_CREDENTIALS.username) { alert("اسم المستخدم محجوز"); return; }
     if (!db) { showToast("Firebase غير متصل"); return; }
 
+    const passwordHash = await hashPassword(password);
+
     db.collection("admin_users").add({
         username, 
-        password, 
+        passwordHash, 
         permissions, 
         createdAt: Date.now()
     }).then(function() {
@@ -507,8 +518,10 @@ window.addUser = function() {
     }).catch(console.error);
 };
 
-window.verifyLogin = function(username, password, callback) {
-    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+window.verifyLogin = async function(username, password, callback) {
+    const passwordHash = await hashPassword(password);
+
+    if (username === ADMIN_CREDENTIALS.username && passwordHash === ADMIN_CREDENTIALS.passwordHash) {
         callback({ role: "admin", permissions: [] }); 
         return;
     }
@@ -516,7 +529,7 @@ window.verifyLogin = function(username, password, callback) {
     
     db.collection("admin_users")
         .where("username", "==", username)
-        .where("password", "==", password)
+        .where("passwordHash", "==", passwordHash)
         .get()
         .then(function(snap) { 
             if(!snap.empty) {
@@ -583,5 +596,60 @@ function loadClientsAdmin() {
                 });
             });
         });
+    }
+}
+
+// =====================================================================
+// === صفحة عملائنا العامة (clients.html) - عرض الشركات في الماركيه ===
+// =====================================================================
+document.addEventListener("DOMContentLoaded", function() {
+    if (currentPage !== "clients.html") return;
+    initFirebase();
+    loadPublicClients();
+});
+
+function loadPublicClients() {
+    const container = document.getElementById("clientsMarquee");
+    if (!container) return;
+
+    function renderClients(list) {
+        if (!list.length) {
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:#fff;">سيتم إضافة عملائنا قريباً</div>';
+            return;
+        }
+
+        const currentLang = localStorage.getItem("eleryan_site_lang") || "ar";
+
+        function buildGroup() {
+            const group = document.createElement("div");
+            group.className = "marquee-group";
+            list.forEach(function(c) {
+                const card = document.createElement("div");
+                card.className = "client-card";
+                card.dataset.en = c.nameEn || c.nameAr; // للترجمة عند تبديل اللغة
+                card.dataset.ar = c.nameAr;
+                card.textContent = currentLang === "en" ? (c.nameEn || c.nameAr) : c.nameAr;
+                group.appendChild(card);
+            });
+            return group;
+        }
+
+        // مجموعتين متطابقتين عشان الحركة (الماركيه) تبقى متصلة بدون فجوة
+        container.innerHTML = "";
+        container.appendChild(buildGroup());
+        container.appendChild(buildGroup());
+    }
+
+    if (db) {
+        db.collection("clients").orderBy("createdAt", "asc").get().then(function(snap) {
+            const list = [];
+            snap.forEach(function(doc) { list.push(doc.data()); });
+            renderClients(list);
+        }).catch(function(e) {
+            console.error(e);
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:#fff;">تعذر تحميل بيانات العملاء</div>';
+        });
+    } else {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:#fff;">تعذر الاتصال بقاعدة البيانات</div>';
     }
 }
