@@ -234,12 +234,12 @@ nav a:hover::after {
     z-index: -1;
 }
 
-.service-card:hover {
+.service-card:hover, .service-card:active {
     transform: translateY(-15px);
     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
 
-.service-card:hover::before {
+.service-card:hover::before, .service-card:active::before {
     height: 100%;
 }
 
@@ -257,7 +257,7 @@ nav a:hover::after {
     transition: var(--transition);
 }
 
-.service-card:hover .icon-wrapper {
+.service-card:hover .icon-wrapper, .service-card:active .icon-wrapper {
     background: var(--gold);
     color: var(--primary);
     transform: rotateY(360deg);
@@ -276,7 +276,7 @@ nav a:hover::after {
     transition: var(--transition);
 }
 
-.service-card:hover h3, .service-card:hover p {
+.service-card:hover h3, .service-card:hover p, .service-card:active h3, .service-card:active p {
     color: var(--white);
 }
 
@@ -783,7 +783,7 @@ footer {
     transition: var(--transition);
 }
 
-.service-card:hover .client-en {
+.service-card:hover .client-en, .service-card:active .client-en {
     color: var(--text-light); 
 }
 
@@ -970,6 +970,13 @@ body.lang-en .marquee-group {
     margin-bottom: 20px;
     flex-wrap: wrap;
     gap: 15px;
+}
+
+/* ثبات الهيدر في صفحة بيانات الشركات عند النزول لتحت */
+.sticky-companies-header {
+    position: sticky;
+    top: 10px;
+    z-index: 500;
 }
 
 .dashboard-header .header-title {
@@ -1523,7 +1530,6 @@ body.lang-en .marquee-group {
 
 .companies-data-table {
     border-collapse: collapse;
-    min-width: 1600px;
     width: 100%;
     font-size: 0.82rem;
     direction: rtl;
@@ -1542,9 +1548,6 @@ body.lang-en .marquee-group {
     background: var(--primary);
     color: var(--gold);
     font-weight: 700;
-    position: sticky;
-    top: 0;
-    z-index: 2;
 }
 
 .companies-data-table thead tr:first-child th {
@@ -1559,8 +1562,8 @@ body.lang-en .marquee-group {
 .companies-data-table td input {
     border: none;
     background: transparent;
-    width: 100%;
-    min-width: 80px;
+    min-width: 30px;
+    max-width: 260px;
     font-family: inherit;
     font-size: 0.82rem;
     text-align: center;
@@ -1577,13 +1580,7 @@ body.lang-en .marquee-group {
 .companies-data-table .col-company { 
     font-weight: 700; 
     color: var(--primary);
-    min-width: 130px;
 }
-.companies-data-table .col-type { min-width: 60px; }
-.companies-data-table .col-system { min-width: 90px; }
-.companies-data-table .col-pass { min-width: 110px; }
-.companies-data-table .col-natid { min-width: 130px; }
-.companies-data-table .col-reg { min-width: 100px; }
 .companies-data-table .col-del { width: 40px; }
 
 .add-company-row {
