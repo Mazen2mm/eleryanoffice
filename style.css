@@ -1524,8 +1524,57 @@ body.lang-en .marquee-group {
 /* ========  جدول بيانات الشركات (تعريف عريض)  =========== */
 /* ====================================================== */
 .companies-data-table-wrap {
-    overflow-x: auto;
+    overflow: auto;
     width: 100%;
+    max-height: 65vh;
+    border-radius: 0 0 12px 12px;
+}
+
+/* ---- تجميد صفوف الهيدر عند النزول لأسفل ---- */
+.companies-data-table thead th {
+    position: sticky;
+    z-index: 20;
+}
+.companies-data-table thead tr:first-child th {
+    top: 0;
+    height: 40px;
+}
+.companies-data-table thead tr:last-child th {
+    top: 40px;
+    height: 34px;
+}
+
+/* ---- تجميد عمودي "م" و"اسم الشركة" عند التمرير لليمين/اليسار ---- */
+.companies-data-table th.col-idx,
+.companies-data-table td.col-idx {
+    position: sticky;
+    right: 0;
+    z-index: 15;
+    width: 36px;
+}
+.companies-data-table th.col-company,
+.companies-data-table td.col-company {
+    position: sticky;
+    right: 36px;
+    z-index: 15;
+}
+/* خلايا زاوية الهيدر (مجمدة رأسياً وأفقياً معاً) لازم تظل فوق كل شيء */
+.companies-data-table thead th.col-idx,
+.companies-data-table thead th.col-company {
+    z-index: 30;
+}
+/* خلفية صلبة لخلايا الجسم المجمدة حتى لا يظهر تحتها محتوى العمود المتحرك */
+.companies-data-table tbody td.col-idx,
+.companies-data-table tbody td.col-company {
+    background: #fff;
+}
+.companies-data-table tbody tr:nth-child(even) td.col-idx,
+.companies-data-table tbody tr:nth-child(even) td.col-company {
+    background: #f4f6f9;
+}
+.companies-data-table tbody tr:hover td.col-idx,
+.companies-data-table tbody tr:hover td.col-company {
+    background: #e8f0fe;
 }
 
 .companies-data-table {
@@ -1660,23 +1709,81 @@ body.lang-en .marquee-group {
 .user-card .user-info strong { display: block; color: var(--primary); font-size: 0.95rem; }
 .user-card .user-info span { color: #888; font-size: 0.82rem; }
 
-.user-card .delete-user-btn {
+.user-card .card-actions {
     position: absolute;
     top: 10px;
     left: 10px;
+    display: flex;
+    gap: 12px;
+}
+
+.user-card .delete-user-btn,
+.user-card .edit-user-btn {
     background: transparent;
     border: none;
-    color: #c0392b;
     cursor: pointer;
     font-size: 1rem;
     transition: var(--transition);
 }
 
-.user-card .delete-user-btn:hover { transform: scale(1.2); }
+.user-card .delete-user-btn { color: #c0392b; }
+.user-card .edit-user-btn { color: var(--primary); }
+
+.user-card .delete-user-btn:hover,
+.user-card .edit-user-btn:hover { transform: scale(1.2); }
 
 .user-card.main-account {
     border-color: var(--gold);
     background: rgba(212,175,55,0.06);
+}
+
+/* ====================================================== */
+/* ======  نافذة تعديل صلاحيات مستخدم (Modal)  =========== */
+/* ====================================================== */
+.edit-user-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 25, 47, 0.7);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.edit-user-overlay.show {
+    display: flex;
+}
+
+.edit-user-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+
+.edit-user-modal h3 {
+    color: var(--primary);
+    margin-bottom: 18px;
+    font-size: 1.2rem;
+}
+
+.edit-user-modal .permissions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    background: rgba(212,175,55,0.06);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.edit-user-modal .permissions-grid label {
+    cursor: pointer;
 }
 
 .add-user-form {
@@ -1776,4 +1883,39 @@ body.lang-en .marquee-group {
     padding: 2px 8px;
     font-weight: 700;
     margin-inline-start: 6px;
+}
+
+/* ====================================================== */
+/* ================ صفحة الأتمتة (e-invoice) ============= */
+/* ====================================================== */
+.automation-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+.automation-card {
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    padding: 40px 30px;
+    margin: 0 auto;
+}
+.auto-select {
+    width: 100%; 
+    padding: 15px 45px 15px 15px; 
+    background: rgba(10, 25, 47, 0.6); 
+    border: 1px solid rgba(212, 175, 55, 0.4); 
+    border-radius: 8px; 
+    color: var(--white); 
+    font-size: 1.1rem; 
+    font-family: inherit;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.auto-select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
 }
