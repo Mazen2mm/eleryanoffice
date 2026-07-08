@@ -534,7 +534,7 @@ function processAndDownloadTaxCSV() {
             statusEl.style.color = anyRowHadValues ? "green" : "#f39c12";
             statusEl.textContent = anyRowHadValues
                 ? `تم استخراج ملف CSV (مبيعات/مشتريات) للمنظومة الـ ${systemLabel} بنجاح!`
-                : `تنبيه: تم استخراج الملف، لكن كل القيم طلعت صفر. تأكد من مطابقة أسماء الأعمدة داخل الشيت.`;
+                : `تنبيه: تم استخراج الملف، لكن لا توجد قيم. تأكد من مطابقة أسماء الأعمدة داخل الشيت.`;
         } catch (err) { console.error(err); statusEl.textContent = "خطأ في معالجة الملف."; }
     };
     fileReader.readAsArrayBuffer(selectedFile);
