@@ -46,6 +46,7 @@
                     <label style="cursor: pointer;"><input type="checkbox" name="permission" value="users"> إدارة المستخدمين</label>
                     <label style="cursor: pointer;"><input type="checkbox" name="permission" value="attendance_click"> تسجيل الحضور والانصراف</label>
                     <label style="cursor: pointer;"><input type="checkbox" name="permission" value="attendance_report"> تقرير الحضور والغياب</label>
+                    <label style="cursor: pointer;"><input type="checkbox" name="permission" value="einvoice"> الفاتورة الإلكترونية</label>
                 </div>
             </div>
             
@@ -62,6 +63,19 @@
 </div>
 
 <div class="save-toast" id="saveToast"><i class="fa-solid fa-circle-check"></i> <span>تم الحفظ بنجاح</span></div>
+
+<!-- نافذة تعديل صلاحيات مستخدم موجود -->
+<div class="edit-user-overlay" id="editUserOverlay">
+    <div class="edit-user-modal">
+        <h3><i class="fa-solid fa-user-pen"></i> تعديل صلاحيات <span id="editUserName" style="color:var(--gold);"></span></h3>
+        <div class="permissions-grid" id="editPermissionsGrid"></div>
+        <div style="display:flex; gap:10px; margin-top:22px; justify-content:flex-end;">
+            <button type="button" class="logout-btn" id="editUserCancel" style="background:#eef2f7; border-color:#ccd6e0; color:#0a192f;">إلغاء</button>
+            <button type="button" id="editUserSave"><i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات</button>
+        </div>
+    </div>
+</div>
+
 <script src="admin.js"></script>
 </body>
 </html>
