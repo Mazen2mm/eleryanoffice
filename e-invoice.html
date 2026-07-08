@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أتمتة الفواتير | Eleryan Office</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="shortcut icon" href="1.png" type="image/x-icon">
+</head>
+
+<body class="admin-body" style="align-items: flex-start; padding: 25px 15px;"> 
+
+    <div class="dashboard">
+        <div class="dashboard-header">
+            <div class="header-title">
+                <img src="4.png" alt="لوجو" style="height: 45px;">
+                <span>أتمتة الفواتير الإلكترونية</span>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <a href="admin-home.html" class="logout-btn" style="text-decoration:none;">
+                    <i class="fa-solid fa-house"></i> الرئيسية
+                </a>
+            </div>
+        </div>
+
+        <div class="automation-page" style="min-height: auto; padding: 40px 0;">
+            <div class="glass-form reveal active automation-card">
+                
+                <div class="icon-wrapper" style="margin-bottom: 20px; width: 70px; height: 70px; font-size: 1.8rem; background: rgba(212, 175, 55, 0.15);">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+                
+                <h2 style="color: var(--gold); font-size: 2rem; margin-bottom: 10px;">برنامج الفواتير الالكترونية الآلي</h2>
+                <p style="color: var(--text-light); margin-bottom: 30px; font-size: 1rem; opacity: 0.8;">اختر الشركة للتشغيل</p>
+                
+                <div id="loadingMsg" style="color: var(--gold); font-size: 0.95rem; margin-bottom: 15px; display: none; font-weight: 500;">
+                    <i class="fa-solid fa-spinner fa-spin"></i> جاري جلب الشركات من النظام...
+                </div>
+                
+                <div class="input-group" style="margin-bottom: 30px; text-align: right; position: relative;">
+                    <select id="companySelect" class="auto-select">
+                        <option value="" disabled selected>-- يرجى الاختيار --</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--gold); pointer-events: none;"></i>
+                </div>
+                
+                <button id="startBtn" class="submit-btn" style="box-shadow: 0 10px 20px rgba(212, 175, 55, 0.2);">
+                    <i class="fa-solid fa-play"></i> ابدأ التشغيل الآن
+                </button>
+
+                <div style="margin-top: 30px; padding-top: 25px; border-top: 1px solid rgba(255,255,255,0.1); text-align: right;">
+                    <a href="Setup.exe" download class="logout-btn" style="display:inline-flex; background: rgba(212, 175, 55, 0.15); color: var(--gold); border-color: var(--gold); margin-bottom: 15px; text-decoration: none;">
+                        <i class="fa-solid fa-download"></i> تحميل الإضافة (Setup)
+                    </a>
+                    <p style="color: #e74c3c; font-size: 0.85rem; font-weight: 700; line-height: 1.6; background: rgba(231, 76, 60, 0.1); padding: 10px; border-radius: 8px;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> ملحوظة: برجاء التأكد من تحميل الاضافة وتثبيتها على الجهاز قبل التشغيل.
+                    </p>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
