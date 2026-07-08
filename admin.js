@@ -47,7 +47,8 @@ const PROTECTED_PAGES = {
     "admin-companies.html": "companies",
     "admin-users.html": "users",
     "attendance.html": "attendance_click",
-    "attendance-report.html": "attendance_report"
+    "attendance-report.html": "attendance_report",
+    "e-invoice.html": "einvoice" // تم ربط صفحة الأتمتة بصلاحية الفاتورة الإلكترونية
 };
 
 const currentPage = window.location.pathname.split("/").pop();
@@ -370,8 +371,9 @@ function renderCompanyData(rows) {
     let html = "";
     rows.forEach(function(row, idx) {
         html += `<tr data-company-name="${row.name||""}">
-            <td>${idx+1}</td>
+            <td class="col-idx">${idx+1}</td>
             <td class="col-company"><input data-id="${row.id}" data-field="name" value="${esc(row.name)}"></td>
+            <td><input data-id="${row.id}" data-field="regno" value="${esc(row.regno)}" class="col-reg"></td>
             <td class="col-type"><input data-id="${row.id}" data-field="type" value="${esc(row.type)}"></td>
             <td class="col-system"><input data-id="${row.id}" data-field="system" value="${esc(row.system)}"></td>
             <td><input data-id="${row.id}" data-field="email" value="${esc(row.email)}" class="col-pass"></td>
@@ -379,7 +381,6 @@ function renderCompanyData(rows) {
             <td><input data-id="${row.id}" data-field="sysuser" value="${esc(row.sysuser)}" class="col-pass"></td>
             <td><input data-id="${row.id}" data-field="syspass" value="${esc(row.syspass)}" class="col-pass"></td>
             <td><input data-id="${row.id}" data-field="natid" value="${esc(row.natid)}" class="col-natid"></td>
-            <td><input data-id="${row.id}" data-field="regno" value="${esc(row.regno)}" class="col-reg"></td>
             <td><input data-id="${row.id}" data-field="einvuser" value="${esc(row.einvuser)}" class="col-pass"></td>
             <td><input data-id="${row.id}" data-field="einvpass" value="${esc(row.einvpass)}" class="col-pass"></td>
             <td><input data-id="${row.id}" data-field="piencode" value="${esc(row.piencode)}"></td>
@@ -489,11 +490,78 @@ function esc(v) { return (v||"").replace(/"/g,"&quot;"); }
 // =====================================================================
 // === صفحة إدارة المستخدمين وتعديلات الصلاحيات ===
 // =====================================================================
+const PERMISSIONS_LIST = [
+    {value:"declarations",      label:"إقرارات ضريبية"},
+    {value:"companies",         label:"بيانات الشركات"},
+    {value:"clients",           label:"إدارة عملائنا"},
+    {value:"users",             label:"إدارة المستخدمين"},
+    {value:"attendance_click",  label:"تسجيل الحضور والانصراف"},
+    {value:"attendance_report", label:"تقرير الحضور والغياب"},
+    {value:"einvoice",          label:"الفاتورة الإلكترونية"}
+];
+
+function permLabel(value) {
+    const found = PERMISSIONS_LIST.find(p => p.value === value);
+    return found ? found.label : value;
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     if (currentPage !== "admin-users.html") return;
     initFirebase();
     setupLogout("logoutBtn");
     loadUsers();
+
+    // إغلاق نافذة تعديل الصلاحيات
+    const overlay = document.getElementById("editUserOverlay");
+    const cancelBtn = document.getElementById("editUserCancel");
+    if (cancelBtn) cancelBtn.addEventListener("click", closeEditUserModal);
+    if (overlay) overlay.addEventListener("click", function(e) {
+        if (e.target === overlay) closeEditUserModal();
+    });
+});
+
+let currentEditUserId = null;
+
+function closeEditUserModal() {
+    const overlay = document.getElementById("editUserOverlay");
+    if (overlay) overlay.classList.remove("show");
+    currentEditUserId = null;
+}
+
+window.openEditUserModal = function(id, username, permissionsJSON) {
+    currentEditUserId = id;
+    let currentPerms = [];
+    try { currentPerms = JSON.parse(permissionsJSON) || []; } catch(e) { currentPerms = []; }
+
+    document.getElementById("editUserName").textContent = username;
+
+    const grid = document.getElementById("editPermissionsGrid");
+    grid.innerHTML = PERMISSIONS_LIST.map(function(p) {
+        const checked = currentPerms.includes(p.value) ? "checked" : "";
+        return `<label><input type="checkbox" name="editPermission" value="${p.value}" ${checked}> ${p.label}</label>`;
+    }).join("");
+
+    document.getElementById("editUserOverlay").classList.add("show");
+};
+
+document.addEventListener("DOMContentLoaded", function() {
+    const saveBtn = document.getElementById("editUserSave");
+    if (!saveBtn) return;
+    saveBtn.addEventListener("click", function() {
+        if (!currentEditUserId || !db) { closeEditUserModal(); return; }
+        const checkboxes = document.querySelectorAll('input[name="editPermission"]:checked');
+        const permissions = Array.from(checkboxes).map(cb => cb.value);
+        db.collection("admin_users").doc(currentEditUserId).update({ permissions: permissions })
+            .then(function() {
+                showToast("تم تحديث الصلاحيات");
+                closeEditUserModal();
+                loadUsers();
+            })
+            .catch(function(e) {
+                console.error(e);
+                showToast("خطأ أثناء حفظ الصلاحيات");
+            });
+    });
 });
 
 function loadUsers() {
@@ -513,7 +581,11 @@ function loadUsers() {
             .then(function(snap) {
                 snap.forEach(function(doc) {
                     const u = doc.data();
-                    let permsHTML = (u.permissions || []).map(p => `<span style="background:#eee;color:#333;font-size:10px;padding:2px 5px;border-radius:4px;margin-left:4px;">${esc(p)}</span>`).join("");
+                    const perms = u.permissions || [];
+                    let permsHTML = perms.length
+                        ? perms.map(p => `<span style="background:#eee;color:#333;font-size:10px;padding:2px 5px;border-radius:4px;margin-left:4px;">${esc(permLabel(p))}</span>`).join("")
+                        : `<span style="color:#bbb;font-size:11px;">لا توجد صلاحيات محددة</span>`;
+                    const permsAttr = esc(JSON.stringify(perms)).replace(/'/g, "&#39;");
                     html += `<div class="user-card">
                         <div class="user-icon"><i class="fa-solid fa-user"></i></div>
                         <div class="user-info">
@@ -521,9 +593,14 @@ function loadUsers() {
                             <span>••••••••</span>
                             <div style="margin-top:5px;">${permsHTML}</div>
                         </div>
-                        <button class="delete-user-btn" data-id="${doc.id}" title="حذف">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+                        <div class="card-actions">
+                            <button class="edit-user-btn" data-id="${doc.id}" data-username="${esc(u.username)}" data-perms='${permsAttr}' title="تعديل الصلاحيات">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="delete-user-btn" data-id="${doc.id}" title="حذف">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
                     </div>`;
                 });
                 grid.innerHTML = html;
@@ -532,6 +609,11 @@ function loadUsers() {
                         if (!confirm("حذف هذا المستخدم؟")) return;
                         db.collection("admin_users").doc(btn.dataset.id).delete()
                             .then(function() { showToast("تم الحذف"); loadUsers(); }).catch(console.error);
+                    });
+                });
+                grid.querySelectorAll(".edit-user-btn").forEach(function(btn) {
+                    btn.addEventListener("click", function() {
+                        openEditUserModal(btn.dataset.id, btn.dataset.username, btn.dataset.perms);
                     });
                 });
             }).catch(function(e) {
@@ -703,7 +785,6 @@ function loadPublicClients() {
             return group;
         }
 
-        // مجموعتين متطابقتين عشان الحركة (الماركيه) تبقى متصلة بدون فجوة
         container.innerHTML = "";
         container.appendChild(buildGroup());
         container.appendChild(buildGroup());
@@ -722,3 +803,77 @@ function loadPublicClients() {
         container.innerHTML = '<div style="text-align:center;padding:20px;color:#fff;">تعذر الاتصال بقاعدة البيانات</div>';
     }
 }
+
+// =====================================================================
+// === صفحة أتمتة الفواتير (e-invoice.html) ===
+// =====================================================================
+document.addEventListener("DOMContentLoaded", function() {
+    if (currentPage !== "e-invoice.html") return;
+
+    const githubUser = "Mazen2mm"; 
+    const githubRepo = "eleryanoffice";        
+    const folderPath = "E-invoice";            
+
+    const selectEl = document.getElementById("companySelect");
+    const loadingMsg = document.getElementById("loadingMsg");
+    const startBtn = document.getElementById("startBtn");
+
+    if (!selectEl || !startBtn) return; // التأكد من وجود العناصر بالصفحة
+
+    async function fetchFilesFromGitHub() {
+        loadingMsg.style.display = "block";
+        startBtn.disabled = true;
+        startBtn.style.opacity = "0.5";
+
+        let apiUrl = `https://api.github.com/repos/${githubUser}/${githubRepo}/contents/${folderPath}`;
+
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error("لم يتم العثور على الملفات");
+            
+            const data = await response.json();
+
+            data.forEach(item => {
+                if (item.type === "file") {
+                    let option = document.createElement("option");
+                    let cleanName = item.name.replace(".txt", "").replace(".ahk", "");
+                    
+                    option.value = cleanName; 
+                    option.text = cleanName;  
+                    option.style.background = "#0a192f";
+                    option.style.color = "#fff";
+                    selectEl.appendChild(option);
+                }
+            });
+            
+            loadingMsg.style.display = "none";
+            startBtn.disabled = false;
+            startBtn.style.opacity = "1";
+
+        } catch (error) {
+            console.error(error);
+            loadingMsg.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> تأكد من رفع الملفات في مجلد E-invoice على جيت هاب';
+            loadingMsg.style.color = "#e74c3c"; 
+        }
+    }
+
+    fetchFilesFromGitHub();
+
+    startBtn.addEventListener("click", function() {
+        const branch = selectEl.value;
+        if (!branch) {
+            selectEl.style.borderColor = "#e74c3c";
+            setTimeout(() => selectEl.style.borderColor = "rgba(212, 175, 55, 0.4)", 2000);
+            return;
+        }
+
+        const originalText = startBtn.innerHTML;
+        startBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري البدء...';
+        
+        window.location.href = `mycompany://run?branch=${branch}`;
+
+        setTimeout(() => {
+            startBtn.innerHTML = originalText;
+        }, 3000);
+    });
+});
