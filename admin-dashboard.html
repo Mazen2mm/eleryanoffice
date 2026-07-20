@@ -435,9 +435,10 @@ function processAndDownloadTaxCSV() {
                 
                 // التأكد من أن أي إشعار يتم تسجيله في الإقرار كـ "تسويات" (5)
                 if (isCreditNote || isDebitNote) {
-                    codedDocType = isCreditNote ? 2 : 3;  
+                    codedDocType = 3;  
                     statementType = 5; 
-                } else if (isImport) {
+                    }
+                else if (isImport) {
                     codedDocType = 4;  
                     statementType = 2; 
                 }
