@@ -99,7 +99,7 @@ export default function AdminServicesPage() {
               }}
             >
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "220px" }}>
-                <label style={{ fontSize: "0.85rem", color: "#555" }}>Meta Title (اختياري - لو فاضي هيستخدم اسم الخدمة)</label>
+                <label style={{ fontSize: "0.85rem", color: "#555" }}>Meta Title (اختياري)</label>
                 <input
                   type="text"
                   id="newServiceMetaTitle"
@@ -108,7 +108,7 @@ export default function AdminServicesPage() {
                 />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 2, minWidth: "260px" }}>
-                <label style={{ fontSize: "0.85rem", color: "#555" }}>Meta Description (اختياري - لو فاضي هيستخدم الوصف المختصر)</label>
+                <label style={{ fontSize: "0.85rem", color: "#555" }}>Meta Description (اختياري)</label>
                 <input
                   type="text"
                   id="newServiceMetaDesc"
