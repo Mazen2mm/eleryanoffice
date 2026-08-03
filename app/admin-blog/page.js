@@ -72,7 +72,7 @@ export default function AdminBlogPage() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "220px" }}>
                 <label style={{ fontSize: "0.85rem", color: "#555" }}>
-                  Slug: <bdi dir="ltr">tips-tax-2026</bdi>
+                  Slug: <bdi dir="ltr"></bdi>
                 </label>
                 <input
                   type="text"
