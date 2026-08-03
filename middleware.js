@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/session";
-import { hasAccess, PROTECTED_PAGES } from "@/lib/permissions";
+import { verifySessionToken, SESSION_COOKIE_NAME } from "./lib/session";
+import { hasAccess, PROTECTED_PAGES } from "./lib/permissions";
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
