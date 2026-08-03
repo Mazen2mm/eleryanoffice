@@ -60,7 +60,7 @@ export default function AdminBlogPage() {
             >
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "220px" }}>
                 <label style={{ fontSize: "0.85rem", color: "#555" }}>
-                  رابط خارجي (اختياري) - لو المقال منشور مكان تاني وعايز تربطه بيه بدل صفحة داخلية
+                  اختياري
                 </label>
                 <input
                   type="text"
@@ -72,7 +72,7 @@ export default function AdminBlogPage() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "220px" }}>
                 <label style={{ fontSize: "0.85rem", color: "#555" }}>
-                  رابط المقال (Slug) - مطلوب لو مفيش رابط خارجي، مثال: <bdi dir="ltr">tips-tax-2026</bdi>
+                  Slug: <bdi dir="ltr">tips-tax-2026</bdi>
                 </label>
                 <input
                   type="text"
@@ -85,7 +85,7 @@ export default function AdminBlogPage() {
             </div>
 
             <div style={{ padding: "0 20px 20px" }}>
-              <label style={{ fontSize: "0.85rem", color: "#555" }}>محتوى المقال الكامل (يظهر في صفحة المقال نفسها لو مفيش رابط خارجي)</label>
+              <label style={{ fontSize: "0.85rem", color: "#555" }}>محتوى المقال الكامل </label>
               <textarea
                 id="newBlogBody"
                 placeholder="اكتب محتوى المقال هنا..."
