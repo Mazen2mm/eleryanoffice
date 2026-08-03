@@ -4,30 +4,3 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
-
-module.exports = {
-  async redirects() {
-    return [
-      {
-        source: "/services.html",
-        destination: "/services",
-        permanent: true,
-      },
-      {
-        source: "/about.html",
-        destination: "/about",
-        permanent: true,
-      },
-      {
-        source: "/contact.html",
-        destination: "/contact",
-        permanent: true,
-      },
-      {
-        source: "/index.html",
-        destination: "/",
-        permanent: true,
-      },
-    ];
-  },
-};
