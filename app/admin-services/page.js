@@ -68,7 +68,7 @@ export default function AdminServicesPage() {
             >
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "220px" }}>
                 <label style={{ fontSize: "0.85rem", color: "#555" }}>
-                  رابط الخدمة (Slug) - حروف إنجليزية وأرقام وشرطة (-) فقط، مثال: <bdi dir="ltr">esteshara-daribeya</bdi>
+                  Slug : <bdi dir="ltr">esteshara-daribeya</bdi>
                 </label>
                 <input
                   type="text"
