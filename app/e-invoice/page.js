@@ -110,7 +110,7 @@ export default function EInvoicePage() {
               </div>
             </div>
 
-            <div id="einvExtensionsSection" style={{ display: "none" }}>
+            <div id="einvExtensionsSection">
               <h2 style={{ color: "var(--gold)", fontSize: "1.3rem", marginBottom: "15px", textAlign: "center" }}>
                 <i className="fa-solid fa-puzzle-piece"></i> الإكستنشنز
               </h2>
@@ -136,20 +136,16 @@ export default function EInvoicePage() {
               <p style={{ color: "#e74c3c", fontSize: "0.82rem", fontWeight: 700, textAlign: "center", marginTop: "15px" }}>
                 <i className="fa-solid fa-triangle-exclamation"></i> حمّل الملف، فك الضغط عنه، وحمّله من chrome://extensions (Load unpacked) قبل الضغط على Start.
               </p>
-
-              <div style={{ marginTop: "30px" }}>
-                <h2 style={{ color: "var(--gold)", fontSize: "1.1rem", marginBottom: "15px", textAlign: "center" }}>
-                  <i className="fa-solid fa-users-gear"></i> صلاحية الموظفين على الإكستنشن
-                </h2>
-                <div id="einvEmployeesList" style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "560px", margin: "0 auto" }} suppressHydrationWarning>
-                  <p style={{ color: "#888", fontSize: "0.9rem", textAlign: "center" }}>جاري التحميل...</p>
-                </div>
-              </div>
             </div>
 
-            <p id="einvNoAccessMsg" style={{ display: "none", color: "#999", textAlign: "center", fontSize: "0.85rem" }}>
-              <i className="fa-solid fa-lock"></i> التحكم في الإكستنشنز متاح للحساب الرئيسي فقط.
-            </p>
+            <div id="einvEmployeesSection" style={{ display: "none", marginTop: "30px" }}>
+              <h2 style={{ color: "var(--gold)", fontSize: "1.1rem", marginBottom: "15px", textAlign: "center" }}>
+                <i className="fa-solid fa-users-gear"></i> صلاحية الموظفين على الإكستنشن
+              </h2>
+              <div id="einvEmployeesList" style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "560px", margin: "0 auto" }} suppressHydrationWarning>
+                <p style={{ color: "#888", fontSize: "0.9rem", textAlign: "center" }}>جاري التحميل...</p>
+              </div>
+            </div>
 
           </div>
         </div>
