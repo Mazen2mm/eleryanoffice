@@ -3,15 +3,17 @@ import { cookies } from "next/headers";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { verifySessionToken, SESSION_COOKIE_NAME, hashPasswordServer } from "@/lib/session";
 
-async function requireAdmin() {
+async function requireUsersAccess() {
   const token = cookies().get(SESSION_COOKIE_NAME)?.value;
   const session = await verifySessionToken(token);
-  if (!session || session.role !== "admin") return null;
-  return session;
+  if (!session) return null;
+  if (session.role === "admin") return session;
+  if (Array.isArray(session.permissions) && session.permissions.includes("users")) return session;
+  return null;
 }
 
 export async function GET() {
-  const session = await requireAdmin();
+  const session = await requireUsersAccess();
   if (!session) return NextResponse.json({ ok: false, message: "غير مصرح" }, { status: 403 });
 
   const db = getAdminDb();
@@ -25,7 +27,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  const session = await requireAdmin();
+  const session = await requireUsersAccess();
   if (!session) return NextResponse.json({ ok: false, message: "غير مصرح" }, { status: 403 });
 
   const { username, password, permissions } = await request.json();
