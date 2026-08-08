@@ -54,79 +54,6 @@ const ETA_EXTENSION_ID = "jhcfippogffpombhhbljamceocoiogdd";
         }
     }
 
-    async function loadEmployeesAccess() {
-        const list = document.getElementById("einvEmployeesList");
-        if (!list) return;
-        try {
-            const res = await fetch("/api/admin-users");
-            const data = await res.json();
-            if (!data.ok) {
-                list.innerHTML = '<p style="color:#e74c3c;font-size:0.85rem;text-align:center;">تعذر تحميل الموظفين</p>';
-                return;
-            }
-            renderEmployeesAccess(data.users || []);
-        } catch (err) {
-            list.innerHTML = '<p style="color:#e74c3c;font-size:0.85rem;text-align:center;">تعذر تحميل الموظفين</p>';
-        }
-    }
-
-    function renderEmployeesAccess(users) {
-        const list = document.getElementById("einvEmployeesList");
-        if (!list) return;
-
-        if (!users.length) {
-            list.innerHTML = '<p style="color:#888;font-size:0.9rem;text-align:center;">مفيش موظفين مسجّلين</p>';
-            return;
-        }
-
-        list.innerHTML = users.map(function (u) {
-            const perms = u.permissions || [];
-            const active = perms.includes("einvoice");
-            return `<div class="info-item" style="justify-content:space-between;">
-                <span>${escEinv(u.username)}</span>
-                <button type="button"
-                    class="status-chip ${active ? "up-to-date" : "overdue"} einv-toggle-btn"
-                    data-id="${escEinv(u.id)}"
-                    data-active="${active ? "1" : "0"}"
-                    data-perms="${encodeURIComponent(JSON.stringify(perms))}">
-                    <i class="fa-solid ${active ? "fa-toggle-on" : "fa-toggle-off"}"></i> ${active ? "مفعّل" : "متوقف"}
-                </button>
-            </div>`;
-        }).join("");
-
-        list.querySelectorAll(".einv-toggle-btn").forEach(function (btn) {
-            btn.addEventListener("click", async function () {
-                const id = btn.dataset.id;
-                const isActive = btn.dataset.active === "1";
-                const currentPerms = JSON.parse(decodeURIComponent(btn.dataset.perms));
-                const nextPerms = isActive
-                    ? currentPerms.filter(p => p !== "einvoice")
-                    : currentPerms.concat(["einvoice"]);
-
-                btn.disabled = true;
-
-                try {
-                    const res = await fetch("/api/admin-users/" + id, {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ permissions: nextPerms }),
-                    });
-                    const data = await res.json();
-                    if (!data.ok) {
-                        showToast(data.message || "تعذر التحديث");
-                        btn.disabled = false;
-                        return;
-                    }
-                    showToast(isActive ? "تم إيقاف الموظف" : "تم تفعيل الموظف");
-                    loadEmployeesAccess();
-                } catch (err) {
-                    showToast("تعذر الاتصال بالسيرفر");
-                    btn.disabled = false;
-                }
-            });
-        });
-    }
-
     document.addEventListener("DOMContentLoaded", function () {
         renderCompanies();
 
@@ -251,16 +178,6 @@ const ETA_EXTENSION_ID = "jhcfippogffpombhhbljamceocoiogdd";
                 }
             });
         }
-
-        (async function () {
-            const session = window.ELERYAN_SESSION_READY ? await window.ELERYAN_SESSION_READY : null;
-            const employeesSection = document.getElementById("einvEmployeesSection");
-            const canManageUsers = session && (session.role === "admin" || (session.permissions || []).includes("users"));
-            if (canManageUsers) {
-                employeesSection.style.display = "block";
-                loadEmployeesAccess();
-            }
-        })();
 
         document.querySelectorAll(".einv-start-btn").forEach(function (btn) {
             btn.addEventListener("click", async function () {
