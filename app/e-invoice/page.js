@@ -138,15 +138,6 @@ export default function EInvoicePage() {
               </p>
             </div>
 
-            <div id="einvEmployeesSection" style={{ display: "none", marginTop: "30px" }}>
-              <h2 style={{ color: "var(--gold)", fontSize: "1.1rem", marginBottom: "15px", textAlign: "center" }}>
-                <i className="fa-solid fa-users-gear"></i> صلاحية الموظفين على الإكستنشن
-              </h2>
-              <div id="einvEmployeesList" style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "560px", margin: "0 auto" }} suppressHydrationWarning>
-                <p style={{ color: "#888", fontSize: "0.9rem", textAlign: "center" }}>جاري التحميل...</p>
-              </div>
-            </div>
-
           </div>
         </div>
       </AdminBody>
