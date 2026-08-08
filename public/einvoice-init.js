@@ -254,13 +254,11 @@ const ETA_EXTENSION_ID = "jhcfippogffpombhhbljamceocoiogdd";
 
         (async function () {
             const session = window.ELERYAN_SESSION_READY ? await window.ELERYAN_SESSION_READY : null;
-            const extSection = document.getElementById("einvExtensionsSection");
-            const noAccessMsg = document.getElementById("einvNoAccessMsg");
-            if (session && session.role === "admin") {
-                extSection.style.display = "block";
+            const employeesSection = document.getElementById("einvEmployeesSection");
+            const canManageUsers = session && (session.role === "admin" || (session.permissions || []).includes("users"));
+            if (canManageUsers) {
+                employeesSection.style.display = "block";
                 loadEmployeesAccess();
-            } else {
-                noAccessMsg.style.display = "block";
             }
         })();
 
